@@ -4,7 +4,7 @@ import DealerConsole from '@/components/dealer/DealerConsole';
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: '딜러 콘솔 — ReRoom Tile',
+  title: '딜러 콘솔 — STUDIO TWOTONE',
   robots: { index: false },
 };
 

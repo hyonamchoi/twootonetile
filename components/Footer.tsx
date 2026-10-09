@@ -4,11 +4,10 @@ export default function Footer() {
   return (
     <footer className="w-full border-t border-line">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-10 text-xs text-ink-faint md:flex-row">
-        <div className="flex items-baseline gap-2">
-          <span className="font-display text-sm font-bold text-ink">
-            ReRoom<span className="text-clay">.</span> Tile
-          </span>
-          <span>© 2026 ReRoom AI. All rights reserved.</span>
+        <div className="flex flex-col items-center gap-2 md:flex-row md:gap-4">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="STUDIO TWOTONE" className="h-4 w-auto" />
+          <span>© 2026 STUDIO TWOTONE. All rights reserved.</span>
         </div>
         <div className="flex items-center gap-4">
           <Link href="/dealer" className="font-semibold text-ink-soft transition-colors hover:text-clay">

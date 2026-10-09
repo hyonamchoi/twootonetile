@@ -85,7 +85,7 @@ export default function DealerConsole({ next }: { next?: string }) {
   if (!auth.authenticated) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-sm flex-col justify-center px-5">
-        <Link href="/" className="mb-6 text-sm text-ink-soft hover:text-ink">← ReRoom Tile</Link>
+        <Link href="/" className="mb-6 text-sm text-ink-soft hover:text-ink">← STUDIO TWOTONE</Link>
         <h1 className="text-2xl font-semibold text-ink">딜러 콘솔</h1>
         <p className="mt-1 text-sm text-ink-soft">매장 직원·딜러 전용입니다. 카탈로그, 고객 문의, iPad 시연을 관리합니다.</p>
         {!auth.configured ? (
@@ -118,7 +118,7 @@ export default function DealerConsole({ next }: { next?: string }) {
     <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <Link href="/" className="text-[13px] text-ink-soft hover:text-ink">← ReRoom Tile</Link>
+          <Link href="/" className="text-[13px] text-ink-soft hover:text-ink">← STUDIO TWOTONE</Link>
           <h1 className="text-xl font-semibold text-ink">
             {data?.settings.storeName ?? '딜러'} 콘솔
           </h1>

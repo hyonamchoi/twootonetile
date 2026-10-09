@@ -4,13 +4,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="flex items-baseline gap-2.5">
-          <span className="font-display text-xl font-bold tracking-tight text-ink">
-            ReRoom<span className="text-clay">.</span>
-          </span>
-          <span className="rounded-full border border-line-strong px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-ink-soft">
-            Tile
-          </span>
+        <Link href="/" aria-label="STUDIO TWOTONE 홈" className="flex items-center">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="STUDIO TWOTONE" className="h-[18px] w-auto md:h-5" />
         </Link>
 
         <nav className="flex items-center gap-6 text-sm font-medium text-ink-soft">

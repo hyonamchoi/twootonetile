@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 
 type CompareSliderProps = {
@@ -17,6 +17,8 @@ type CompareSliderProps = {
   afterLabel?: string;
   /** CSS aspect-ratio 값 (예: "4 / 3"). 지정하지 않으면 4:3 */
   aspectRatio?: string;
+  /** true면 사용자가 만지기 전까지 슬라이더가 좌우로 자동 왕복한다 (모션 감소 설정 시 정지) */
+  autoSweep?: boolean;
 };
 
 /**
@@ -35,10 +37,26 @@ export default function CompareSlider({
   beforeLabel = 'Before',
   afterLabel = 'After',
   aspectRatio,
+  autoSweep = false,
 }: CompareSliderProps) {
   const [pos, setPos] = useState(50);
+  const [sweeping, setSweeping] = useState(autoSweep);
   const containerRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
+
+  useEffect(() => {
+    if (!sweeping) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      // 15%~85% 구간을 사인파로 왕복
+      setPos(50 + 35 * Math.sin((now - start) / 900));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [sweeping]);
 
   const moveTo = useCallback((clientX: number) => {
     const rect = containerRef.current?.getBoundingClientRect();
@@ -48,12 +66,14 @@ export default function CompareSlider({
   }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
+    setSweeping(false);
     draggingRef.current = true;
     e.currentTarget.setPointerCapture(e.pointerId);
     moveTo(e.clientX);
   };
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    setSweeping(false);
     const step = e.shiftKey ? 10 : 2;
     if (e.key === 'ArrowLeft') {
       setPos((p) => Math.max(0, p - step));
@@ -109,7 +129,7 @@ export default function CompareSlider({
 
       {/* 핸들 */}
       <div
-        className="absolute inset-y-0 w-0.5 bg-paper shadow-[0_0_12px_rgba(33,27,19,0.4)]"
+        className="absolute inset-y-0 w-0.5 bg-paper shadow-[0_0_12px_rgba(0,0,0,0.4)]"
         style={{ left: `${pos}%` }}
       >
         <button
