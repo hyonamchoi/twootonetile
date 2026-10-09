@@ -4,11 +4,14 @@ import { useMemo, useState } from 'react';
 import {
   COLOR_FAMILIES,
   FINISHES,
+  MATERIALS,
   SURFACES,
+  materialOf,
   formatWon,
   type Collection,
   type ColorFamily,
   type Finish,
+  type MaterialId,
   type SurfaceId,
   type Tile,
 } from '@/lib/tiles';
@@ -36,8 +39,8 @@ function Heart({ on }: { on: boolean }) {
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
       <path
         d="M12 21s-7-4.35-9.5-9C.9 8.5 3 5 6.5 5c2 0 4 1 5.5 3 1.500-2 3.5-3 5.5-3C21 5 23.1 8.500 21.5 12 19 16.65 12 21 12 21z"
-        fill={on ? '#b0562f' : 'none'}
-        stroke={on ? '#b0562f' : 'currentColor'}
+        fill={on ? '#0a0a0a' : 'none'}
+        stroke={on ? '#0a0a0a' : 'currentColor'}
         strokeWidth="1.8"
         strokeLinejoin="round"
       />
@@ -63,6 +66,7 @@ export default function TilePicker({
   const [collectionId, setCollectionId] = useState<string>(() =>
     initialCollectionId && collections.some((c) => c.id === initialCollectionId) ? initialCollectionId : 'all'
   );
+  const [material, setMaterial] = useState<'all' | MaterialId>('all');
   const [colors, setColors] = useState<ColorFamily[]>([]);
   const [finishes, setFinishes] = useState<Finish[]>([]);
   const [onlyFav, setOnlyFav] = useState(false);
@@ -76,6 +80,7 @@ export default function TilePicker({
     return tiles
       .filter((t) => t.surfaces.includes(surface))
       .filter((t) => collectionId === 'all' || t.collectionId === collectionId)
+      .filter((t) => material === 'all' || materialOf(t) === material)
       .filter((t) => colors.length === 0 || colors.includes(t.color))
       .filter((t) => finishes.length === 0 || finishes.includes(t.finish))
       .filter((t) => !onlyFav || favorites.has(t.id))
@@ -89,7 +94,7 @@ export default function TilePicker({
           (order.get(a.collectionId ?? '') ?? 999) - (order.get(b.collectionId ?? '') ?? 999) ||
           a.name.localeCompare(b.name, 'ko')
       );
-  }, [tiles, surface, collectionId, colors, finishes, onlyFav, favorites, query, order]);
+  }, [tiles, surface, collectionId, material, colors, finishes, onlyFav, favorites, query, order]);
 
   const activeFilters = colors.length + finishes.length + (onlyFav ? 1 : 0);
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -126,13 +131,22 @@ export default function TilePicker({
           })}
         </div>
 
+        {/* 소재: 타일 / 엔지니어드 스톤 */}
+        <div className="mt-3 flex gap-1.5" role="group" aria-label="소재">
+          {[{ id: 'all' as const, label: '전체' }, ...MATERIALS].map((m) => (
+            <button key={m.id} onClick={() => setMaterial(m.id)} className={chip(material === m.id)}>
+              {m.label}
+            </button>
+          ))}
+        </div>
+
         {/* 검색 · 필터 · 즐겨찾기 · 보기 방식 */}
         <div className="mt-3 flex items-center gap-2">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="타일 검색 (이름·품번·브랜드)"
-            aria-label="타일 검색"
+            placeholder="제품 검색 (이름·품번·브랜드)"
+            aria-label="제품 검색"
             className={`min-w-0 flex-1 rounded-xl border border-line bg-paper px-3 text-ink placeholder-ink-faint focus:border-clay focus:outline-none ${
               kiosk ? 'py-3 text-base' : 'py-2 text-sm'
             }`}

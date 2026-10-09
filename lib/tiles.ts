@@ -149,6 +149,17 @@ export const COLOR_FAMILIES = [
 ] as const;
 export type ColorFamily = (typeof COLOR_FAMILIES)[number];
 
+/** 소재 구분: 타일(포세린·세라믹 등) / 엔지니어드 스톤(인조 석영 슬랩) */
+export const MATERIALS = [
+  { id: 'tile', label: '타일' },
+  { id: 'stone', label: '엔지니어드 스톤' },
+] as const;
+export type MaterialId = (typeof MATERIALS)[number]['id'];
+
+export function materialOf(t: { material?: MaterialId }): MaterialId {
+  return t.material ?? 'tile';
+}
+
 export type TilePatternKind =
   | 'marble'
   | 'terrazzo'
@@ -177,6 +188,8 @@ export type Tile = {
   origin?: string;
   finish: Finish;
   color: ColorFamily;
+  /** 소재 (없으면 타일) */
+  material?: MaterialId;
   /** 선택 가능한 규격 id 목록 (비어 있으면 전체 허용) */
   sizes: string[];
   surfaces: SurfaceId[];
@@ -233,6 +246,8 @@ export const LEAD_STATUS_LABEL: Record<LeadStatus, string> = {
 export const LEAD_STATUSES = Object.keys(LEAD_STATUS_LABEL) as LeadStatus[];
 
 export type LeadItem = {
+  /** 여러 공간을 시뮬레이션한 경우 어느 공간의 항목인지 */
+  roomKind?: string;
   surface: SurfaceId;
   tileId: string;
   sku: string;

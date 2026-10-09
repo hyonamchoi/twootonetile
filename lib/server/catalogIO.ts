@@ -6,6 +6,7 @@ import {
   SURFACE_IDS,
   type ColorFamily,
   type Finish,
+  type MaterialId,
   type SurfaceId,
   type Tile,
 } from '../tiles';
@@ -30,6 +31,7 @@ const ALIASES: Record<string, string> = {
   price: 'price', 가격: 'price', 단가: 'price',
   image: 'imageUrl', imageurl: 'imageUrl', 이미지: 'imageUrl', 이미지url: 'imageUrl',
   collection: 'collection', 컬렉션: 'collection',
+  material: 'material', 소재: 'material', 재질: 'material', 분류: 'material',
   active: 'active', 노출: 'active',
 };
 
@@ -41,6 +43,7 @@ type NormalizedTile = {
   origin?: string;
   finish: Finish;
   color: ColorFamily;
+  material: MaterialId;
   sizes: string[];
   surfaces: SurfaceId[];
   price?: number;
@@ -61,6 +64,10 @@ function parseFinish(s: string): Finish {
   if (/반광|새틴|satin|semi/.test(t)) return '반광';
   if (/텍스처|러프|구조|texture|rough|struct/.test(t)) return '텍스처';
   return '무광';
+}
+
+function parseMaterial(s: string): MaterialId {
+  return /스톤|석영|퀄츠|quartz|stone|slab/i.test(s) ? 'stone' : 'tile';
 }
 
 function parseColor(s: string): ColorFamily {
@@ -137,6 +144,7 @@ export function normalizeRow(
       origin: str(row.origin).slice(0, 30) || undefined,
       finish: parseFinish(str(row.finish)),
       color: parseColor(str(row.color)),
+      material: parseMaterial(str(row.material)),
       sizes: parseSizes(str(row.sizes)),
       surfaces: parseSurfaces(str(row.surfaces)),
       price: price && price < 100_000_000 ? price : undefined,
@@ -363,6 +371,7 @@ export async function importRows(rawRows: Record<string, unknown>[]): Promise<Im
         name: t.name,
         finish: t.finish,
         color: t.color,
+        material: t.material,
         sizes: [],
         surfaces: [],
         active: true,
@@ -375,6 +384,7 @@ export async function importRows(rawRows: Record<string, unknown>[]): Promise<Im
         origin: t.origin,
         finish: t.finish,
         color: t.color,
+        material: t.material,
         sizes: t.sizes,
         surfaces: t.surfaces,
         price: t.price,
