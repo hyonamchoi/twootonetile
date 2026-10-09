@@ -8,5 +8,5 @@
   WoodFloor040/041/051/064.
 - `public/demo-rooms/*.jpg` — [Unsplash](https://unsplash.com) 사진 (Unsplash License: 상업적 이용 가능, 표기 불필요).
   - bathroom: unsplash.com/photos/JWliKzMVTug
-  - kitchen: unsplash.com/photos/z3QZ6gjGRt4
+  - kitchen: 사용자가 제공한 샘플 이미지(data/kitchen_sample.png). 이미지에 pngtree 워터마크가 있어 출처·사용 라이선스 확인 필요 (이전 Unsplash 사진: unsplash.com/photos/z3QZ6gjGRt4)
   - entrance: unsplash.com/photos/Y5LpQlSfSko
