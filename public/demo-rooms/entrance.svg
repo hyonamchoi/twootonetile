@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs><linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b7b2a8"/><stop offset="1" stop-color="#8d8880"/></linearGradient></defs>
+  <polygon points="0,0 1200,0 940,130 260,130" fill="#f3f0ea"/>
+  <polygon points="0,0 260,130 260,650 0,900" fill="#d6d0c4"/>
+  <polygon points="1200,0 940,130 940,650 1200,900" fill="#cbc4b7"/>
+  <rect x="260" y="130" width="680" height="520" fill="#e0dacd"/>
+  <polygon points="0,900 260,650 940,650 1200,900" fill="url(#fl)"/>
+  <!-- door -->
+  <rect x="470" y="190" width="260" height="460" fill="#6d5a47"/>
+  <rect x="490" y="215" width="220" height="190" fill="#7a664f"/><rect x="490" y="430" width="220" height="190" fill="#7a664f"/>
+  <circle cx="700" cy="440" r="9" fill="#c8c5be"/>
+  <!-- shoe cabinet -->
+  <rect x="780" y="380" width="150" height="270" fill="#cdbfa5" stroke="#b3a58a" stroke-width="2"/>
+  <line x1="855" y1="380" x2="855" y2="650" stroke="#b3a58a" stroke-width="2"/>
+  <rect x="780" y="372" width="150" height="10" fill="#efece6"/>
+  <!-- mat -->
+  <polygon points="470,720 730,720 760,780 440,780" fill="#4a4a4d"/>
+  <text x="600" y="880" text-anchor="middle" font-family="sans-serif" font-size="22" fill="#00000055">데모 일러스트 · 실제 현관 사진을 올려 보세요</text>
+</svg>

@@ -12,6 +12,11 @@ type CompareSliderProps = {
   priority?: boolean;
   sizes?: string;
   className?: string;
+  /** 왼쪽(비교 기준)·오른쪽 레이블 */
+  beforeLabel?: string;
+  afterLabel?: string;
+  /** CSS aspect-ratio 값 (예: "4 / 3"). 지정하지 않으면 4:3 */
+  aspectRatio?: string;
 };
 
 /**
@@ -27,6 +32,9 @@ export default function CompareSlider({
   priority = false,
   sizes = '(max-width: 768px) 100vw, 896px',
   className = '',
+  beforeLabel = 'Before',
+  afterLabel = 'After',
+  aspectRatio,
 }: CompareSliderProps) {
   const [pos, setPos] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -59,7 +67,8 @@ export default function CompareSlider({
   return (
     <div
       ref={containerRef}
-      className={`group relative w-full aspect-[4/3] overflow-hidden rounded-2xl border border-line bg-sand select-none touch-none cursor-ew-resize shadow-deep ${className}`}
+      style={aspectRatio ? { aspectRatio } : undefined}
+      className={`group relative w-full ${aspectRatio ? '' : 'aspect-[4/3]'} overflow-hidden rounded-2xl border border-line bg-sand select-none touch-none cursor-ew-resize shadow-deep ${className}`}
       onPointerDown={onPointerDown}
       onPointerMove={(e) => draggingRef.current && moveTo(e.clientX)}
       onPointerUp={() => (draggingRef.current = false)}
@@ -76,7 +85,7 @@ export default function CompareSlider({
         draggable={false}
       />
       <span className="absolute bottom-4 right-4 rounded-md bg-ink/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-paper backdrop-blur-sm">
-        Before
+        {beforeLabel}
       </span>
 
       {/* After — clip-path로 좌측 pos%만 노출 */}
@@ -94,7 +103,7 @@ export default function CompareSlider({
           draggable={false}
         />
         <span className="absolute bottom-4 left-4 rounded-md bg-clay px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-paper">
-          After
+          {afterLabel}
         </span>
       </div>
 
