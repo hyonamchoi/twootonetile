@@ -13,10 +13,12 @@ type Props = {
   loading: boolean;
   error: string | null;
   kiosk: boolean;
+  /** 다른 공간을 추가하는 중일 때만 전달 — 기존 공간으로 돌아간다 */
+  onCancel?: () => void;
 };
 
 /** 방 사진 업로드 또는 데모룸 선택 (시작 화면) */
-export default function RoomPicker({ kind, onKind, onFile, onDemo, loading, error, kiosk }: Props) {
+export default function RoomPicker({ kind, onKind, onFile, onDemo, loading, error, kiosk, onCancel }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [drag, setDrag] = useState(false);
@@ -30,11 +32,23 @@ export default function RoomPicker({ kind, onKind, onFile, onDemo, loading, erro
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-8 animate-fade-in">
       <div className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay">Step 1</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-clay">{onCancel ? 'Add Space' : 'Step 1'}</p>
         <h2 className={`font-display mt-2 font-bold tracking-tight text-ink ${kiosk ? 'text-4xl' : 'text-2xl md:text-3xl'}`}>
-          바꾸고 싶은 공간을 보여 주세요
+          {onCancel ? '이어서 시뮬레이션할 공간을 고르세요' : '바꾸고 싶은 공간을 보여 주세요'}
         </h2>
-        <p className="mt-2 text-sm text-ink-soft">욕실·주방·현관 사진을 올리거나 데모룸으로 먼저 체험해 보세요.</p>
+        <p className="mt-2 text-sm text-ink-soft">
+          {onCancel
+            ? '지금까지 작업한 공간은 그대로 보관됩니다. 위쪽 탭에서 언제든 돌아갈 수 있어요.'
+            : '욕실·주방·현관 사진을 올리거나 데모룸으로 먼저 체험해 보세요.'}
+        </p>
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="mt-3 cursor-pointer rounded-full border border-line-strong px-4 py-1.5 text-xs font-semibold text-ink hover:border-ink"
+          >
+            ← 작업 중인 공간으로 돌아가기
+          </button>
+        )}
       </div>
 
       <div className="flex flex-wrap justify-center gap-2" role="group" aria-label="공간 종류">
@@ -95,7 +109,7 @@ export default function RoomPicker({ kind, onKind, onFile, onDemo, loading, erro
       </div>
 
       {error && (
-        <p role="alert" className="rounded-xl border border-clay/30 bg-clay-soft p-3 text-center text-xs text-clay-deep">
+        <p role="alert" className="rounded-xl border border-alert/30 bg-alert-soft p-3 text-center text-xs text-alert">
           {error}
         </p>
       )}

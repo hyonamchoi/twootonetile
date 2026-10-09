@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
-import { DAILY_IP_LIMIT } from '@/lib/constants';
+import { DAILY_IP_LIMIT, UNLIMITED_TRIAL } from '@/lib/constants';
+import { GEMINI_ASPECTS } from '@/lib/image';
 import { isDealer } from '@/lib/server/auth';
 import { readDb } from '@/lib/server/db';
 import { clientIp, fail, readJson } from '@/lib/server/http';
@@ -32,6 +33,8 @@ type Body = {
   image?: string;
   roomKindId?: string;
   applications?: Application[];
+  /** 원본과 같은 비율로 결과를 받기 위한 출력 비율 (예: "4:3") */
+  aspectRatio?: string;
   byokKey?: string | null;
 };
 
@@ -100,6 +103,7 @@ export async function POST(req: NextRequest) {
       `Task: show this exact room after tiling ONLY the following surfaces:`,
       ...lines,
       `Rules:`,
+      `- The output image must keep the exact same framing, camera angle and aspect ratio as Image 1 — do not crop, zoom or extend the scene.`,
       `- Keep everything else unchanged: camera angle, room geometry, fixtures (sink, toilet, bathtub, cabinets, appliances), furniture, windows, doors, ceiling, lighting direction and all objects.`,
       `- Reproduce each sample's real color, veining/pattern and texture faithfully; do not invent a different design or tint it.`,
       `- Scale tiles realistically against the room (a standard door is about 2100 mm high). Follow the surface perspective: tiles and grout lines must converge toward the vanishing points and get smaller with distance, and must wrap neatly around corners and fixtures.`,
@@ -118,7 +122,7 @@ export async function POST(req: NextRequest) {
 
     // 데모 모드(서버 제공 키)인 경우에만 IP당 일일 제한 검증 — 성공했을 때만 차감
     // 딜러 로그인 상태(매장 시연용 iPad 등)는 매장 서버 키를 쓰므로 데모 제한을 적용하지 않는다
-    const isDemoMode = !body.byokKey && !(await isDealer());
+    const isDemoMode = !UNLIMITED_TRIAL && !body.byokKey && !(await isDealer());
     const ipKey = `gen:${clientIp(req)}`;
     if (isDemoMode && !allowed(ipKey, DAILY_IP_LIMIT, DAY)) {
       return fail(
@@ -127,6 +131,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const aspectRatio = GEMINI_ASPECTS.find((a) => a === body.aspectRatio);
     const ai = new GoogleGenAI({ apiKey });
     const res = await ai.models.generateContent({
       model: 'gemini-3.1-flash-image-preview',
@@ -140,6 +145,7 @@ export async function POST(req: NextRequest) {
           ],
         },
       ],
+      config: aspectRatio ? { imageConfig: { aspectRatio } } : undefined,
     });
 
     const candidate = res.candidates?.[0];

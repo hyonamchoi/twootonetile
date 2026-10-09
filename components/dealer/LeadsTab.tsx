@@ -5,6 +5,7 @@ import {
   LEAD_STATUSES,
   LEAD_STATUS_LABEL,
   LEAD_TYPE_LABEL,
+  ROOM_KINDS,
   SURFACES,
   type Lead,
   type LeadStatus,
@@ -132,7 +133,10 @@ export default function LeadsTab({ leads, onChange }: { leads: Lead[]; onChange:
                         <ul className="space-y-1">
                           {l.items.map((i, k) => (
                             <li key={k}>
-                              <span className="text-ink-soft">{SURFACES.find((s) => s.id === i.surface)?.label ?? i.surface}</span>{' '}
+                              <span className="text-ink-soft">
+                                {i.roomKind ? `${ROOM_KINDS.find((r) => r.id === i.roomKind)?.label ?? i.roomKind} · ` : ''}
+                                {SURFACES.find((s) => s.id === i.surface)?.label ?? i.surface}
+                              </span>{' '}
                               {i.brand} {i.name} <span className="text-ink-faint">({i.sku}, {i.sizeId})</span>
                             </li>
                           ))}

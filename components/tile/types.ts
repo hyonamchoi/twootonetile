@@ -26,3 +26,16 @@ export type Version = {
   configs: Configs;
   designId?: string;
 };
+
+/** 한 공간(욕실·주방 등)의 작업 상태 — 공간을 오가도 선택과 결과가 보존된다 */
+export type Space = {
+  id: string;
+  roomKind: string;
+  room: Room;
+  surface: SurfaceId;
+  configs: Configs;
+  versions: Version[];
+  viewId: string;
+  compare: boolean;
+  cmpA: string;
+};

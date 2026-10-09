@@ -1,6 +1,6 @@
 'use client';
 
-import { FREE_GENERATIONS } from '@/lib/constants';
+import { FREE_GENERATIONS, UNLIMITED_TRIAL } from '@/lib/constants';
 
 type Props = {
   byokMode: boolean;
@@ -15,7 +15,7 @@ export default function ApiKeyPanel({ byokMode, onToggle, byokKey, onKey, freeCo
   return (
     <div className="flex flex-col gap-3">
       <p className="text-xs text-ink-soft">
-        {byokMode ? '내 API 키로 무제한 사용 중' : `무료 체험 ${FREE_GENERATIONS}회 중 ${freeCount}회 남음`}
+        {byokMode ? '내 API 키로 무제한 사용 중' : UNLIMITED_TRIAL ? '테스트 모드 · 횟수 제한 없음' : `무료 체험 ${FREE_GENERATIONS}회 중 ${freeCount}회 남음`}
       </p>
       <div className="flex items-center justify-between gap-4">
         <div>

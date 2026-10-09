@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { mutateDb } from '@/lib/server/db';
 import { clientIp, fail, readJson } from '@/lib/server/http';
 import { take } from '@/lib/server/ratelimit';
-import { SURFACE_IDS, type Lead, type LeadItem, type LeadType, type SurfaceId } from '@/lib/tiles';
+import { ROOM_KINDS, SURFACE_IDS, type Lead, type LeadItem, type LeadType, type SurfaceId } from '@/lib/tiles';
 
 export const runtime = 'nodejs';
 
@@ -19,7 +19,7 @@ type Body = {
   roomKind?: string;
   designId?: string;
   consent?: boolean;
-  items?: { surface?: string; tileId?: string; sizeId?: string }[];
+  items?: { surface?: string; tileId?: string; sizeId?: string; roomKind?: string }[];
 };
 
 const TYPES: LeadType[] = ['sample', 'appointment', 'quote', 'showroom'];
@@ -48,11 +48,12 @@ export async function POST(req: NextRequest) {
 
   const lead = await mutateDb((db): Lead | string => {
     const items: LeadItem[] = [];
-    for (const it of (b.items ?? []).slice(0, 8)) {
+    for (const it of (b.items ?? []).slice(0, 16)) {
       const tile = db.tiles.find((t) => t.id === it.tileId);
       const surface = it.surface as SurfaceId;
       if (!tile || !SURFACE_IDS.includes(surface)) continue;
       items.push({
+        roomKind: ROOM_KINDS.find((r) => r.id === it.roomKind)?.id,
         surface,
         tileId: tile.id,
         sku: tile.sku,

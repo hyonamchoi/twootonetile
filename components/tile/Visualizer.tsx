@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import CompareSlider from '../CompareSlider';
-import { FREE_GENERATIONS } from '@/lib/constants';
+import { FREE_GENERATIONS, UNLIMITED_TRIAL } from '@/lib/constants';
 import type { DemoRoom } from '@/lib/demoRooms';
-import { fileToJpeg, urlToJpeg } from '@/lib/image';
+import { fileToJpeg, fitToSize, nearestAspect, urlToJpeg } from '@/lib/image';
 import { rasterizeToJpeg } from '@/lib/swatch';
 import {
   GROUT_COLORS,
@@ -23,7 +23,7 @@ import RoomPicker from './RoomPicker';
 import TileControls from './TileControls';
 import TilePicker from './TilePicker';
 import { tileImageSrc } from './TileThumb';
-import type { Configs, Room, SurfaceConfig, Version } from './types';
+import type { Configs, Room, Space, SurfaceConfig, Version } from './types';
 import { useCatalog } from './useCatalog';
 
 const LOADING_STATUSES = [
@@ -80,6 +80,12 @@ export default function Visualizer({
   const [roomLoading, setRoomLoading] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
 
+  /* 여러 공간: 활성 공간은 아래 개별 state가 원본이고, 나머지는 spaces에 보관한다 */
+  const [pickKind, setPickKind] = useState('bathroom');
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [spaces, setSpaces] = useState<Space[]>([]);
+  const [adding, setAdding] = useState(false);
+
   /* 선택 */
   const [surface, setSurface] = useState<SurfaceId>('wall');
   const [configs, setConfigs] = useState<Configs>({});
@@ -89,7 +95,6 @@ export default function Visualizer({
   const [viewId, setViewId] = useState('original');
   const [compare, setCompare] = useState(false);
   const [cmpA, setCmpA] = useState('original');
-  const versionCount = useRef(0);
 
   /* 생성 */
   const [busy, setBusy] = useState(false);
@@ -116,6 +121,7 @@ export default function Visualizer({
   /* UI */
   const [lead, setLead] = useState<LeadType | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [keyOpen, setKeyOpen] = useState(false);
   const [toast, setToast] = useState<{ msg: string; link?: string } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -142,14 +148,26 @@ export default function Visualizer({
   const activeTile = activeConfig ? (tileById.get(activeConfig.tileId) ?? null) : null;
   const surfaceDef = SURFACES.find((s) => s.id === surface) ?? SURFACES[0];
 
+  const liveSpace = useMemo<Space | null>(
+    () => (room && activeId ? { id: activeId, roomKind, room, surface, configs, versions, viewId, compare, cmpA } : null),
+    [activeId, roomKind, room, surface, configs, versions, viewId, compare, cmpA]
+  );
+  const allSpaces = useMemo(
+    () => spaces.map((sp) => (sp.id === activeId && liveSpace ? liveSpace : sp)),
+    [spaces, activeId, liveSpace]
+  );
+
+  // 견적·샘플 요청에는 시뮬레이션한 모든 공간의 선택을 담는다
   const leadItems = useMemo(
     () =>
-      SURFACES.flatMap((s) => {
-        const c = configs[s.id];
-        const t = c ? tileById.get(c.tileId) : undefined;
-        return c && t ? [{ surface: s.id, tile: t, config: c }] : [];
-      }),
-    [configs, tileById]
+      allSpaces.flatMap((sp) =>
+        SURFACES.flatMap((s) => {
+          const c = sp.configs[s.id];
+          const t = c ? tileById.get(c.tileId) : undefined;
+          return c && t ? [{ roomKind: sp.roomKind, surface: s.id, tile: t, config: c }] : [];
+        })
+      ),
+    [allSpaces, tileById]
   );
 
   const imageOf = (id: string): string | null =>
@@ -172,11 +190,69 @@ export default function Visualizer({
   const resetAll = useCallback(() => {
     setRoom(null);
     setConfigs({});
+    setSpaces([]);
+    setActiveId(null);
+    setAdding(false);
     setRoomError(null);
     setLead(null);
     setMenuOpen(false);
     resetResults();
   }, [resetResults]);
+
+  const loadSpace = (sp: Space) => {
+    setRoom(sp.room);
+    setRoomKind(sp.roomKind);
+    setSurface(sp.surface);
+    setConfigs(sp.configs);
+    setVersions(sp.versions);
+    setViewId(sp.viewId);
+    setCompare(sp.compare);
+    setCmpA(sp.cmpA);
+    setGenError(null);
+    setActiveId(sp.id);
+    setAdding(false);
+  };
+
+  const switchSpace = (id: string) => {
+    if (busy) return;
+    if (id === activeId) return setAdding(false);
+    const target = allSpaces.find((sp) => sp.id === id);
+    if (!target) return;
+    setSpaces(allSpaces);
+    loadSpace(target);
+  };
+
+  const enterNewSpace = (r: Room, kind: string) => {
+    const fresh: Space = {
+      id: uid(),
+      roomKind: kind,
+      room: r,
+      surface: DEFAULT_SURFACE[kind] ?? 'floor',
+      configs: {},
+      versions: [],
+      viewId: 'original',
+      compare: false,
+      cmpA: 'original',
+    };
+    setSpaces([...allSpaces, fresh]);
+    loadSpace(fresh);
+  };
+
+  const removeSpace = (id: string) => {
+    if (busy) return;
+    if (!window.confirm('이 공간의 선택과 결과가 삭제됩니다. 삭제할까요?')) return;
+    const rest = allSpaces.filter((sp) => sp.id !== id);
+    if (rest.length === 0) return resetAll();
+    setSpaces(rest);
+    if (id === activeId) loadSpace(rest[rest.length - 1]);
+  };
+
+  const startAdding = () => {
+    const used = new Set(allSpaces.map((sp) => sp.roomKind));
+    setPickKind(ROOM_KINDS.find((r) => !used.has(r.id))?.id ?? pickKind);
+    setRoomError(null);
+    setAdding(true);
+  };
 
   const loadFile = async (file: File) => {
     if (!file.type.startsWith('image/')) return setRoomError('이미지 파일(JPG, PNG, WebP)만 업로드할 수 있습니다.');
@@ -185,9 +261,7 @@ export default function Visualizer({
     setRoomError(null);
     try {
       const img = await fileToJpeg(file);
-      setRoom({ src: img.src, w: img.w, h: img.h, label: file.name });
-      setSurface(DEFAULT_SURFACE[roomKind] ?? 'floor');
-      resetResults();
+      enterNewSpace({ src: img.src, w: img.w, h: img.h, label: file.name }, pickKind);
     } catch (e) {
       setRoomError(e instanceof Error ? e.message : '사진을 처리하지 못했습니다.');
     } finally {
@@ -200,10 +274,7 @@ export default function Visualizer({
     setRoomError(null);
     try {
       const img = await urlToJpeg(d.src);
-      setRoom({ src: img.src, w: img.w, h: img.h, label: d.label });
-      setRoomKind(d.kind);
-      setSurface(DEFAULT_SURFACE[d.kind] ?? 'floor');
-      resetResults();
+      enterNewSpace({ src: img.src, w: img.w, h: img.h, label: d.label }, d.kind);
     } catch (e) {
       setRoomError(e instanceof Error ? e.message : '데모룸을 불러오지 못했습니다.');
     } finally {
@@ -264,13 +335,15 @@ export default function Visualizer({
 
   const handleApply = async () => {
     if (!room) return setGenError('먼저 공간 사진을 올리거나 데모룸을 선택해 주세요.');
-    if (!kiosk && !byokMode && freeCount <= 0) {
+    if (!UNLIMITED_TRIAL && !kiosk && !byokMode && freeCount <= 0) {
+      setKeyOpen(true);
       return setGenError(
-        `무료 체험 횟수(${FREE_GENERATIONS}회)를 모두 사용하셨습니다. 메뉴에서 "내 API 키로 무제한 사용"을 켜고 개인 API 키를 등록해 주세요.`
+        `무료 체험 횟수(${FREE_GENERATIONS}회)를 모두 사용하셨습니다. 상단의 API 키 버튼에서 "내 API 키로 무제한 사용"을 켜고 개인 API 키를 등록해 주세요.`
       );
     }
     if (byokMode && !byokKey.trim()) {
-      return setGenError('API 키가 입력되지 않았습니다. 메뉴에서 AI Studio 키를 입력해 주세요.');
+      setKeyOpen(true);
+      return setGenError('API 키가 입력되지 않았습니다. 상단의 API 키 입력란에 AI Studio 키를 입력해 주세요.');
     }
 
     setBusy(true);
@@ -296,6 +369,7 @@ export default function Visualizer({
         body: JSON.stringify({
           image: room.src,
           roomKindId: roomKind,
+          aspectRatio: nearestAspect(room.w / room.h),
           applications,
           byokKey: byokMode ? byokKey.trim() : null,
         }),
@@ -303,18 +377,20 @@ export default function Visualizer({
       const body = (await res.json()) as { image?: string; error?: string };
       if (!res.ok || !body.image) throw new Error(body.error || '타일 적용에 실패했습니다.');
 
-      versionCount.current += 1;
+      // 결과 크기를 원본과 정확히 일치시킨다
+      const fitted = await fitToSize(`data:image/png;base64,${body.image}`, room.w, room.h);
+      const n = Math.max(0, ...versions.map((x) => parseInt(x.label.replace(/\D/g, ''), 10) || 0)) + 1;
       const v: Version = {
         id: uid(),
-        label: `적용 ${versionCount.current}`,
-        image: `data:image/png;base64,${body.image}`,
+        label: `적용 ${n}`,
+        image: fitted,
         sig,
         configs: structuredClone(configs),
       };
       setVersions((prev) => [...prev, v].slice(-8));
       setViewId(v.id);
       setCompare(false);
-      if (!kiosk && !byokMode) setFreeRaw(String(Math.max(0, freeCount - 1)));
+      if (!UNLIMITED_TRIAL && !kiosk && !byokMode) setFreeRaw(String(Math.max(0, freeCount - 1)));
     } catch (e) {
       setGenError(e instanceof Error ? e.message : '타일 적용 중 오류가 발생했습니다. 다시 시도해 주세요.');
     } finally {
@@ -377,7 +453,7 @@ export default function Visualizer({
           consent: true,
           roomKind,
           designId: designId ?? undefined,
-          items: leadItems.map((i) => ({ surface: i.surface, tileId: i.tile.id, sizeId: i.config.sizeId })),
+          items: leadItems.map((i) => ({ roomKind: i.roomKind, surface: i.surface, tileId: i.tile.id, sizeId: i.config.sizeId })),
         }),
       });
       const body = (await res.json()) as { error?: string };
@@ -461,6 +537,61 @@ export default function Visualizer({
     );
   }
 
+  const spaceLabel = (sp: Space): string => {
+    const base = ROOM_KINDS.find((r) => r.id === sp.roomKind)?.label ?? '공간';
+    const same = allSpaces.filter((x) => x.roomKind === sp.roomKind);
+    return same.length > 1 ? `${base} ${same.indexOf(sp) + 1}` : base;
+  };
+
+  const spaceTabs = room && (
+    <div className="flex items-center gap-2 overflow-x-auto px-4 pt-3 md:px-6" role="tablist" aria-label="공간">
+      {allSpaces.map((sp) => {
+        const on = !adding && sp.id === activeId;
+        const applied = Object.keys(sp.configs).length;
+        return (
+          <div
+            key={sp.id}
+            className={`flex shrink-0 items-center rounded-full border transition-colors ${
+              on ? 'border-ink bg-ink text-paper' : 'border-line bg-paper-raised text-ink-soft hover:border-line-strong'
+            }`}
+          >
+            <button
+              role="tab"
+              aria-selected={on}
+              onClick={() => switchSpace(sp.id)}
+              disabled={busy}
+              className={`cursor-pointer font-semibold disabled:cursor-not-allowed ${kiosk ? 'py-2.5 pl-4 text-sm' : 'py-1.5 pl-3.5 text-xs'} ${
+                allSpaces.length > 1 ? 'pr-1.5' : 'pr-3.5'
+              }`}
+            >
+              {spaceLabel(sp)}
+              {applied > 0 && <span className={`ml-1.5 ${on ? 'text-paper/70' : 'text-clay'}`}>●{applied}</span>}
+            </button>
+            {allSpaces.length > 1 && (
+              <button
+                onClick={() => removeSpace(sp.id)}
+                disabled={busy}
+                aria-label={`${spaceLabel(sp)} 공간 삭제`}
+                className="cursor-pointer pr-3 text-[11px] opacity-60 hover:opacity-100 disabled:cursor-not-allowed"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        );
+      })}
+      <button
+        onClick={startAdding}
+        disabled={busy}
+        className={`shrink-0 cursor-pointer rounded-full border border-dashed font-semibold transition-colors disabled:cursor-not-allowed ${
+          adding ? 'border-clay bg-clay-soft text-clay' : 'border-line-strong text-ink-soft hover:border-ink hover:text-ink'
+        } ${kiosk ? 'px-4 py-2.5 text-sm' : 'px-3.5 py-1.5 text-xs'}`}
+      >
+        + 다른 공간 추가
+      </button>
+    </div>
+  );
+
   const ratio = room ? room.w / room.h : 4 / 3;
   const shownA = compare ? imageOf(cmpA) : null;
   const shownB = imageOf(viewId);
@@ -498,6 +629,39 @@ export default function Visualizer({
           </button>
         </nav>
 
+        {!kiosk && (
+          <div className="relative">
+            <button
+              onClick={() => setKeyOpen((o) => !o)}
+              aria-expanded={keyOpen}
+              className={`${topBtn} flex items-center gap-1.5 ${byokMode && !byokKey.trim() ? 'border-alert/50 text-alert' : ''}`}
+            >
+              <span aria-hidden>🔑</span>
+              {byokMode
+                ? byokKey.trim()
+                  ? '내 API 키 · 무제한'
+                  : 'API 키 입력'
+                : UNLIMITED_TRIAL
+                  ? '테스트 모드'
+                  : `무료 ${freeCount}/${FREE_GENERATIONS}회`}
+            </button>
+            {keyOpen && (
+              <>
+                <button aria-label="API 키 설정 닫기" className="fixed inset-0 z-30 cursor-default" onClick={() => setKeyOpen(false)} />
+                <div className="absolute right-0 top-full z-40 mt-2 w-80 max-w-[88vw] rounded-2xl border border-line bg-paper-raised p-4 shadow-deep animate-fade-in">
+                  <ApiKeyPanel
+                    byokMode={byokMode}
+                    onToggle={() => setByokRaw(String(!byokMode))}
+                    byokKey={byokKey}
+                    onKey={setByokKey}
+                    freeCount={freeCount}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="relative">
           <button
             onClick={() => setMenuOpen((o) => !o)}
@@ -517,7 +681,7 @@ export default function Visualizer({
                       onClick={() => { resetAll(); }}
                       className="cursor-pointer rounded-lg px-3 py-2 text-left font-semibold hover:bg-sand"
                     >
-                      다른 공간 사진으로 변경
+                      모든 공간 초기화하고 처음부터
                     </button>
                   )}
                   {current && (
@@ -534,17 +698,6 @@ export default function Visualizer({
                     </a>
                   )}
                 </div>
-                {!kiosk && (
-                  <div className="mt-2 border-t border-line pt-3">
-                    <ApiKeyPanel
-                      byokMode={byokMode}
-                      onToggle={() => setByokRaw(String(!byokMode))}
-                      byokKey={byokKey}
-                      onKey={setByokKey}
-                      freeCount={freeCount}
-                    />
-                  </div>
-                )}
               </div>
             </>
           )}
@@ -555,16 +708,18 @@ export default function Visualizer({
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* 중앙 룸뷰 (모바일에서는 위쪽) */}
         <section className="order-first flex h-[48dvh] min-h-0 shrink-0 flex-col bg-sand/50 lg:order-last lg:h-auto lg:flex-1">
-          {!room ? (
+          {spaceTabs}
+          {!room || adding ? (
             <div className="min-h-0 flex-1 overflow-y-auto">
               <RoomPicker
-                kind={roomKind}
-                onKind={setRoomKind}
+                kind={pickKind}
+                onKind={setPickKind}
                 onFile={loadFile}
                 onDemo={loadDemo}
                 loading={roomLoading}
                 error={roomError}
                 kiosk={kiosk}
+                onCancel={room ? () => setAdding(false) : undefined}
               />
             </div>
           ) : (
@@ -684,9 +839,9 @@ export default function Visualizer({
               )}
 
               {genError && (
-                <div role="alert" className="mx-4 mb-2 flex items-start justify-between gap-3 rounded-xl border border-clay/30 bg-clay-soft p-3 text-xs leading-relaxed text-clay-deep md:mx-6">
+                <div role="alert" className="mx-4 mb-2 flex items-start justify-between gap-3 rounded-xl border border-alert/30 bg-alert-soft p-3 text-xs leading-relaxed text-alert md:mx-6">
                   <span>{genError}</span>
-                  <button onClick={() => setGenError(null)} aria-label="오류 닫기" className="cursor-pointer text-clay-deep/70 hover:text-clay-deep">✕</button>
+                  <button onClick={() => setGenError(null)} aria-label="오류 닫기" className="cursor-pointer text-alert/70 hover:text-alert">✕</button>
                 </div>
               )}
 
@@ -736,7 +891,12 @@ export default function Visualizer({
           kiosk={kiosk}
           storeName={storeName}
           defaultStaff={staff}
-          items={leadItems.map((i) => ({ surface: i.surface, name: i.tile.name, sizeLabel: sizeLabel(i.config.sizeId) }))}
+          items={leadItems.map((i) => ({
+            surface: i.surface,
+            name: i.tile.name,
+            sizeLabel: sizeLabel(i.config.sizeId),
+            roomLabel: allSpaces.length > 1 ? ROOM_KINDS.find((r) => r.id === i.roomKind)?.label : undefined,
+          }))}
           onSubmit={(f) => submitLead(lead, f)}
           onClose={() => setLead(null)}
         />

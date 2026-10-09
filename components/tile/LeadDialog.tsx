@@ -12,7 +12,7 @@ export type LeadFields = {
   staff: string;
 };
 
-export type LeadSummaryItem = { surface: string; name: string; sizeLabel: string };
+export type LeadSummaryItem = { surface: string; name: string; sizeLabel: string; roomLabel?: string };
 
 type Props = {
   type: LeadType;
@@ -127,8 +127,11 @@ export default function LeadDialog({ type, items, kiosk, defaultStaff, storeName
             {items.length > 0 && (
               <ul className="rounded-xl border border-line bg-paper p-3 text-xs text-ink-soft">
                 {items.map((it) => (
-                  <li key={it.surface} className="flex justify-between gap-3 py-0.5">
-                    <span>{SURFACES.find((s) => s.id === it.surface)?.label}</span>
+                  <li key={`${it.roomLabel ?? ''}-${it.surface}`} className="flex justify-between gap-3 py-0.5">
+                    <span>
+                      {it.roomLabel ? `${it.roomLabel} · ` : ''}
+                      {SURFACES.find((s) => s.id === it.surface)?.label}
+                    </span>
                     <span className="truncate font-semibold text-ink">
                       {it.name} · {it.sizeLabel}
                     </span>
@@ -181,7 +184,7 @@ export default function LeadDialog({ type, items, kiosk, defaultStaff, storeName
             )}
 
             <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-ink-soft">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[#b0562f]" />
+              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-black" />
               <span>
                 <b className="text-ink">[필수]</b> 개인정보 수집·이용에 동의합니다.
                 <span className="mt-1 block text-ink-faint">
@@ -191,7 +194,7 @@ export default function LeadDialog({ type, items, kiosk, defaultStaff, storeName
             </label>
 
             {error && (
-              <p role="alert" className="rounded-xl border border-clay/30 bg-clay-soft p-3 text-xs text-clay-deep">
+              <p role="alert" className="rounded-xl border border-alert/30 bg-alert-soft p-3 text-xs text-alert">
                 {error}
               </p>
             )}
