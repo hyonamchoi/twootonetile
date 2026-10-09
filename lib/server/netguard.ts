@@ -64,7 +64,7 @@ export async function safeFetch(
     const res = await fetch(url, {
       redirect: 'manual',
       signal: AbortSignal.timeout(opts.timeoutMs ?? 15000),
-      headers: { 'user-agent': 'ReRoomAI-CatalogSync/1.0' },
+      headers: { 'user-agent': 'TWOTONE-CatalogSync/1.0' },
     });
     if (res.status >= 300 && res.status < 400) {
       const loc = res.headers.get('location');

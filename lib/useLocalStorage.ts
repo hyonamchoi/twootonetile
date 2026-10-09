@@ -2,7 +2,7 @@
 
 import { useCallback, useSyncExternalStore } from 'react';
 
-const STORAGE_EVENT = 'reroom:storage';
+const STORAGE_EVENT = 'twotone:storage';
 
 /**
  * localStorage와 동기화되는 상태 훅.

@@ -1,8 +1,8 @@
 /** 인메모리 슬라이딩 윈도우가 아닌 단순 고정 윈도우 제한기. 단일 서버용 MVP. */
 
 type Bucket = { count: number; resetAt: number };
-const g = globalThis as unknown as { __reroomLimits?: Map<string, Bucket> };
-const buckets = (g.__reroomLimits ??= new Map<string, Bucket>());
+const g = globalThis as unknown as { __twotoneLimits?: Map<string, Bucket> };
+const buckets = (g.__twotoneLimits ??= new Map<string, Bucket>());
 
 function sweep(now: number) {
   if (buckets.size < 2000) return;

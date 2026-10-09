@@ -3,7 +3,7 @@
 # 🎯 Agent Instructions (CLAUDE.md)
 
 ## Purpose
-This file defines **role-based agents** for the ReRoomAI project. Agents are specialized AI personas with unique goals, tools, and workflows. Developers and tools can invoke agents to perform specific tasks without rewriting the instructions.
+This file defines **role-based agents** for the STUDIO TWOTONE project. Agents are specialized AI personas with unique goals, tools, and workflows. Developers and tools can invoke agents to perform specific tasks without rewriting the instructions.
 
 ## 📖 Agent Directory
 

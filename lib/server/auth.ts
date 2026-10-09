@@ -7,7 +7,7 @@ import { cookies } from 'next/headers';
  * 비밀번호가 없을 때는 개발 환경(NODE_ENV !== 'production')에서만 열어 둔다.
  */
 
-export const DEALER_COOKIE = 'reroom_dealer';
+export const DEALER_COOKIE = 'twotone_dealer';
 const MAX_AGE_SEC = 60 * 60 * 12;
 
 function secret(): string | null {
