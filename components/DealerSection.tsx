@@ -30,7 +30,7 @@ export default function DealerSection() {
             타일 도소매·시공업체를 위한 상담 도구
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-paper/70 md:text-base">
-            고객이 결과를 보고 결정하면 상담이 짧아집니다. 매장과 온라인에서 같은 시뮬레이터로 고객을 맞이하세요.
+            고객이 결과를 보고 결정하면 상담이 짧아집니다. 매장과 온라인에서 같은 AI 시뮬레이터로 고객을 맞이하세요.
           </p>
         </Reveal>
 

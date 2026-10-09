@@ -11,7 +11,9 @@ import {
   HEX_RE,
   ROOM_KINDS,
   SURFACES,
+  MAX_SURFACES_PER_APPLY,
   findLayout,
+  isSlabSurface,
   type SurfaceId,
 } from '@/lib/tiles';
 
@@ -64,8 +66,9 @@ export async function POST(req: NextRequest) {
 
     const roomKind = ROOM_KINDS.find((r) => r.id === body.roomKindId) ?? ROOM_KINDS[0];
     const apps = body.applications ?? [];
-    if (apps.length === 0 || apps.length > SURFACES.length) {
-      return fail('적용할 타일을 한 가지 이상 선택해 주세요.');
+    if (apps.length === 0) return fail('적용할 타일을 한 가지 이상 선택해 주세요.');
+    if (apps.length > MAX_SURFACES_PER_APPLY) {
+      return fail(`한 번에 최대 ${MAX_SURFACES_PER_APPLY}곳까지만 적용할 수 있습니다. 일부를 제거한 뒤 다시 시도해 주세요.`);
     }
 
     const db = await readDb();
@@ -92,9 +95,13 @@ export async function POST(req: NextRequest) {
       sampleParts.push({ inlineData: { mimeType: swatch[1], data: swatch[2] } });
       const idx = sampleParts.length + 1; // 이미지 1은 공간 사진
       lines.push(
-        `- ${surface.prompt}: use the tile in Image ${idx} ("${tile.name}", ${tile.finish} finish). ` +
-          `Each tile module is ${size[1]} x ${size[2]} mm, installed as ${layout.prompt}. ` +
-          `Grout joints are ${groutMm} mm wide, colored ${groutName(grout)}.`
+        isSlabSurface(surface.id)
+          ? `- ${surface.prompt}: surface it with the engineered stone slab in Image ${idx} ("${tile.name}", ${tile.finish} finish). ` +
+              `It is one continuous slab: no grout lines or tile joints, with the veining/speckle flowing naturally across the top and a clean edge. ` +
+              `Keep the existing countertop shape, thickness, sink cut-outs and edge profile.`
+          : `- ${surface.prompt}: use the tile in Image ${idx} ("${tile.name}", ${tile.finish} finish). ` +
+              `Each tile module is ${size[1]} x ${size[2]} mm, installed as ${layout.prompt}. ` +
+              `Grout joints are ${groutMm} mm wide, colored ${groutName(grout)}.`
       );
     }
 

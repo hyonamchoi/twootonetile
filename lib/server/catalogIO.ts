@@ -96,15 +96,19 @@ function parseSizes(s: string): string[] {
   return [...out];
 }
 
+// 상판은 대리석·스톤 계열에만 어울리므로 면 정보를 안 준 제품의 기본값에서는 뺀다
+const DEFAULT_SURFACES = SURFACE_IDS.filter((id) => id !== 'countertop');
+
 function parseSurfaces(s: string): SurfaceId[] {
-  if (!s) return [...SURFACE_IDS];
+  if (!s) return [...DEFAULT_SURFACES];
   const t = s.toLowerCase();
   const out: SurfaceId[] = [];
   if (/바닥|floor/.test(t)) out.push('floor');
   if (/벽|wall/.test(t)) out.push('wall');
   if (/백스|backsplash|주방벽/.test(t)) out.push('backsplash');
   if (/샤워|shower|욕조/.test(t)) out.push('shower');
-  return out.length ? out : [...SURFACE_IDS];
+  if (/상판|카운터|아일랜드|세면대|countertop|worktop|vanity/.test(t)) out.push('countertop');
+  return out.length ? out : [...DEFAULT_SURFACES];
 }
 
 function parseActive(v: unknown): boolean {
@@ -411,11 +415,11 @@ export async function importRows(rawRows: Record<string, unknown>[]): Promise<Im
 
 /* ───────── 피드 동기화 ───────── */
 
-const sg = globalThis as unknown as { __reroomSyncing?: boolean };
+const sg = globalThis as unknown as { __twotoneSyncing?: boolean };
 
 export async function runSync(): Promise<{ ok: boolean; message: string }> {
-  if (sg.__reroomSyncing) return { ok: false, message: '이미 동기화가 진행 중입니다.' };
-  sg.__reroomSyncing = true;
+  if (sg.__twotoneSyncing) return { ok: false, message: '이미 동기화가 진행 중입니다.' };
+  sg.__twotoneSyncing = true;
   const finish = async (ok: boolean, message: string) => {
     await mutateDb((db) => {
       if (db.settings.feed) {
@@ -435,14 +439,14 @@ export async function runSync(): Promise<{ ok: boolean; message: string }> {
   } catch (e) {
     return finish(false, `동기화 실패: ${e instanceof Error ? e.message : '알 수 없는 오류'}`);
   } finally {
-    sg.__reroomSyncing = false;
+    sg.__twotoneSyncing = false;
   }
 }
 
 /** 소비자 카탈로그 조회 때 주기가 지났으면 백그라운드로 한 번 동기화한다. */
 export async function maybeAutoSync(): Promise<void> {
   const feed = (await readDb()).settings.feed;
-  if (!feed?.url || !feed.autoSyncHours || sg.__reroomSyncing) return;
+  if (!feed?.url || !feed.autoSyncHours || sg.__twotoneSyncing) return;
   const last = feed.lastSyncAt ? Date.parse(feed.lastSyncAt) : 0;
   if (Date.now() - last < feed.autoSyncHours * 3600_000) return;
   void runSync();

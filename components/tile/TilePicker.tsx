@@ -5,6 +5,7 @@ import {
   COLOR_FAMILIES,
   FINISHES,
   MATERIALS,
+  MAX_SURFACES_PER_APPLY,
   SURFACES,
   materialOf,
   formatWon,
@@ -20,7 +21,6 @@ import TileThumb from './TileThumb';
 type Props = {
   tiles: Tile[];
   collections: Collection[];
-  storeName: string;
   showPrice: boolean;
   kiosk: boolean;
   surface: SurfaceId;
@@ -51,7 +51,6 @@ function Heart({ on }: { on: boolean }) {
 export default function TilePicker({
   tiles,
   collections,
-  storeName,
   showPrice,
   kiosk,
   surface,
@@ -72,6 +71,10 @@ export default function TilePicker({
   const [onlyFav, setOnlyFav] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [view, setView] = useState<'grid' | 'list'>('grid');
+
+  const selectedCount = Object.keys(chosen).length;
+  // 이미 최대 개수를 골랐고 현재 면은 아직 안 골랐다면, 이 면의 타일은 고를 수 없다
+  const locked = selectedCount >= MAX_SURFACES_PER_APPLY && !chosen[surface];
 
   const order = useMemo(() => new Map(collections.map((c) => [c.id, c.order])), [collections]);
 
@@ -107,11 +110,9 @@ export default function TilePicker({
   return (
     <aside className="flex min-h-0 flex-1 flex-col border-line bg-paper-raised lg:w-[340px] lg:flex-none lg:border-r">
       <div className="border-b border-line px-5 pb-4 pt-5">
-        <p className="font-display text-xl font-bold tracking-tight text-ink">{storeName}</p>
-
-        {/* 적용면 선택 */}
-        <div className="mt-4 grid grid-cols-2 gap-2" role="tablist" aria-label="적용면">
-          {SURFACES.map((s) => {
+        {/* 적용면 선택 — 6열 격자에서 윗줄 3개·아랫줄 2개로 나눠 5개 버튼이 균형 있게 배치되도록 한다 */}
+        <div className="grid grid-cols-6 gap-2" role="tablist" aria-label="적용면">
+          {SURFACES.map((s, i) => {
             const on = surface === s.id;
             const done = Boolean(chosen[s.id]);
             return (
@@ -120,9 +121,9 @@ export default function TilePicker({
                 role="tab"
                 aria-selected={on}
                 onClick={() => onSurface(s.id)}
-                className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border font-semibold transition-colors ${
-                  kiosk ? 'py-3.5 text-base' : 'py-2.5 text-sm'
-                } ${on ? 'border-ink bg-ink text-paper shadow-lift' : 'border-line bg-paper text-ink-soft hover:border-line-strong hover:text-ink'}`}
+                className={`flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-1 font-semibold transition-colors ${
+                  i < 3 ? 'col-span-2' : 'col-span-3'
+                } ${kiosk ? 'py-3.5 text-[15px]' : 'py-2.5 text-[13px]'} ${on ? 'border-ink bg-ink text-paper shadow-lift' : 'border-line bg-paper text-ink-soft hover:border-line-strong hover:text-ink'}`}
               >
                 {done && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${on ? 'bg-paper' : 'bg-clay'}`} />}
                 {s.label}
@@ -130,6 +131,13 @@ export default function TilePicker({
             );
           })}
         </div>
+
+        <p className="mt-2 text-[11px] text-ink-faint" aria-live="polite">
+          한 번에 최대 {MAX_SURFACES_PER_APPLY}곳까지 적용 ·{' '}
+          <b className={selectedCount >= MAX_SURFACES_PER_APPLY ? 'text-ink' : 'text-ink-soft'}>
+            선택 {selectedCount}/{MAX_SURFACES_PER_APPLY}
+          </b>
+        </p>
 
         {/* 소재: 타일 / 엔지니어드 스톤 */}
         <div className="mt-3 flex gap-1.5" role="group" aria-label="소재">
@@ -249,6 +257,11 @@ export default function TilePicker({
 
       {/* 타일 목록 */}
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
+        {locked && (
+          <p role="status" className="mb-3 rounded-xl border border-line-strong bg-sand p-3 text-xs leading-relaxed text-ink-soft">
+            이미 {MAX_SURFACES_PER_APPLY}곳을 선택했어요. 다른 면의 &lsquo;제거&rsquo;를 누르면 이 면을 고를 수 있습니다.
+          </p>
+        )}
         {visible.length === 0 ? (
           <p className="py-12 text-center text-sm text-ink-faint">
             조건에 맞는 타일이 없습니다.
@@ -263,9 +276,10 @@ export default function TilePicker({
                 <li key={t.id} className="relative">
                   <button
                     onClick={() => onSelect(t)}
+                    disabled={locked}
                     title={`${t.name} · ${t.brand}`}
                     aria-pressed={on}
-                    className={`block w-full cursor-pointer overflow-hidden rounded-lg border-2 transition-all ${
+                    className={`block w-full cursor-pointer overflow-hidden rounded-lg border-2 transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
                       on ? 'border-clay shadow-lift' : 'border-transparent hover:border-line-strong'
                     }`}
                   >
@@ -292,8 +306,9 @@ export default function TilePicker({
                 <li key={t.id} className="relative">
                   <button
                     onClick={() => onSelect(t)}
+                    disabled={locked}
                     aria-pressed={on}
-                    className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border p-2 pr-10 text-left transition-colors ${
+                    className={`flex w-full cursor-pointer items-center gap-3 rounded-xl border p-2 pr-10 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                       on ? 'border-clay bg-clay-soft' : 'border-line bg-paper hover:border-line-strong'
                     }`}
                   >

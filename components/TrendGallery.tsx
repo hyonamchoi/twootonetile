@@ -13,7 +13,7 @@ export default function TrendGallery({ collections, tiles }: { collections: Coll
             지금 눈여겨볼 타일 컬렉션
           </h2>
           <p className="mt-4 max-w-xl text-sm leading-relaxed text-ink-soft md:text-base">
-            이탈리아·스페인에서 주목받는 분위기를 컬렉션으로 묶었습니다. 컬렉션을 고르면 시뮬레이터에서 바로 적용해 볼 수 있습니다.
+            이탈리아·스페인에서 주목받는 분위기를 컬렉션으로 묶었습니다. 컬렉션을 고르면 AI 시뮬레이터에서 바로 적용해 볼 수 있습니다.
           </p>
         </Reveal>
 

@@ -9,6 +9,8 @@ import { fileToJpeg, fitToSize, nearestAspect, urlToJpeg } from '@/lib/image';
 import { rasterizeToJpeg } from '@/lib/swatch';
 import {
   GROUT_COLORS,
+  MAX_SURFACES_PER_APPLY,
+  isSlabSurface,
   ROOM_KINDS,
   SURFACES,
   TILE_SIZES,
@@ -22,7 +24,7 @@ import LeadDialog, { type LeadFields } from './LeadDialog';
 import RoomPicker from './RoomPicker';
 import TileControls from './TileControls';
 import TilePicker from './TilePicker';
-import { tileImageSrc } from './TileThumb';
+import TileThumb, { tileImageSrc } from './TileThumb';
 import type { Configs, Room, Space, SurfaceConfig, Version } from './types';
 import { useCatalog } from './useCatalog';
 
@@ -46,6 +48,7 @@ const DEFAULT_SIZE: Record<SurfaceId, string> = {
   wall: '300x600',
   backsplash: '100x300',
   shower: '300x600',
+  countertop: '1200x1200',
 };
 
 const IDLE_MS = 120_000;
@@ -102,13 +105,13 @@ export default function Visualizer({
   const [genError, setGenError] = useState<string | null>(null);
 
   /* 로컬 저장 값 */
-  const [freeRaw, setFreeRaw] = useLocalStorage('reroom_free_generations', String(FREE_GENERATIONS));
+  const [freeRaw, setFreeRaw] = useLocalStorage('twotone_free_generations', String(FREE_GENERATIONS));
   const freeCount = Number(freeRaw);
-  const [byokRaw, setByokRaw] = useLocalStorage('reroom_byok_mode', 'false');
+  const [byokRaw, setByokRaw] = useLocalStorage('twotone_byok_mode', 'false');
   const byokMode = byokRaw === 'true';
-  const [byokKey, setByokKey] = useLocalStorage('reroom_byok_key', '');
-  const [favRaw, setFavRaw] = useLocalStorage('reroom_favorites', '[]');
-  const [staff, setStaff] = useLocalStorage('reroom_staff', '');
+  const [byokKey, setByokKey] = useLocalStorage('twotone_byok_key', '');
+  const [favRaw, setFavRaw] = useLocalStorage('twotone_favorites', '[]');
+  const [staff, setStaff] = useLocalStorage('twotone_staff', '');
   const favorites = useMemo(() => {
     try {
       const arr = JSON.parse(favRaw) as unknown;
@@ -285,6 +288,8 @@ export default function Visualizer({
   const handleSelect = (tile: Tile) => {
     setConfigs((prev) => {
       const old = prev[surface];
+      // 새 면을 추가하는데 이미 최대 개수라면 무시 (선택 화면에서도 막지만 한 번 더 방어)
+      if (!old && Object.keys(prev).length >= MAX_SURFACES_PER_APPLY) return prev;
       const allowed = (id: string) => tile.sizes.length === 0 || tile.sizes.includes(id);
       const sizeId =
         old && allowed(old.sizeId)
@@ -592,6 +597,40 @@ export default function Visualizer({
     </div>
   );
 
+  /** 선택한 결과(원본 포함)에 적용된 면·타일 조합 */
+  const versionItems = (id: string) => {
+    const v = versions.find((x) => x.id === id);
+    if (!v) return [];
+    return SURFACES.flatMap((s) => {
+      const c = v.configs[s.id];
+      const t = c ? tileById.get(c.tileId) : undefined;
+      return c && t ? [{ surface: s, tile: t, config: c }] : [];
+    });
+  };
+
+  const renderVersionDetail = (id: string) => {
+    const items = versionItems(id);
+    return (
+      <div key={id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5" aria-label={`${labelOf(id)} 적용 내역`}>
+        <span className="text-[11px] font-bold text-ink">{labelOf(id)}</span>
+        {id === 'original' ? (
+          <span className="text-[11px] text-ink-faint">원본 사진 (변경 없음)</span>
+        ) : items.length === 0 ? (
+          <span className="text-[11px] text-ink-faint">적용 내역이 없습니다</span>
+        ) : (
+          items.map((i) => (
+            <span key={i.surface.id} className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+              <TileThumb tile={i.tile} className="h-5 w-5 shrink-0 rounded border border-line" px={64} />
+              <b className="font-semibold text-ink">{i.surface.label}</b>
+              {i.tile.name}
+              {!isSlabSurface(i.surface.id) && <span className="text-ink-faint">· {sizeLabel(i.config.sizeId)}</span>}
+            </span>
+          ))
+        )}
+      </div>
+    );
+  };
+
   const ratio = room ? room.w / room.h : 4 / 3;
   const shownA = compare ? imageOf(cmpA) : null;
   const shownB = imageOf(viewId);
@@ -607,6 +646,9 @@ export default function Visualizer({
             <span aria-hidden>←</span> 나가기
           </Link>
         )}
+        <h1 className={`shrink-0 font-display font-bold tracking-tight text-ink ${kiosk ? 'text-xl' : 'text-sm md:text-base'}`}>
+          AI 시뮬레이터
+        </h1>
         {kiosk && (
           <input
             value={staff}
@@ -838,6 +880,13 @@ export default function Visualizer({
                 </div>
               )}
 
+              {versions.length > 0 && (
+                <div className="mx-4 mb-2 flex flex-col gap-1.5 rounded-xl border border-line bg-paper-raised px-3.5 py-2.5 md:mx-6" aria-live="polite">
+                  {compare && cmpA !== viewId && renderVersionDetail(cmpA)}
+                  {renderVersionDetail(viewId)}
+                </div>
+              )}
+
               {genError && (
                 <div role="alert" className="mx-4 mb-2 flex items-start justify-between gap-3 rounded-xl border border-alert/30 bg-alert-soft p-3 text-xs leading-relaxed text-alert md:mx-6">
                   <span>{genError}</span>
@@ -869,7 +918,6 @@ export default function Visualizer({
         <TilePicker
           tiles={tiles}
           collections={data?.collections ?? []}
-          storeName={storeName}
           showPrice={showPrice}
           kiosk={kiosk}
           surface={surface}

@@ -88,10 +88,13 @@ type Row = [
 const ALL: SurfaceId[] = ['floor', 'wall', 'backsplash', 'shower'];
 const WALLISH: SurfaceId[] = ['wall', 'backsplash', 'shower'];
 const FLOORWALL: SurfaceId[] = ['floor', 'wall', 'shower'];
+// 상판까지 쓸 수 있는 제품(대리석·스톤 계열)
+const ALLC: SurfaceId[] = [...ALL, 'countertop'];
+const WALLC: SurfaceId[] = [...WALLISH, 'countertop'];
 
 const ROWS: Row[] = [
-  ['DEMO-M01', '카라라 화이트', 'c-milano', 'carrara', '화이트', '유광', '이탈리아', ['600x600', '600x1200', '800x800', '1200x1200'], ALL, 52000],
-  ['DEMO-M02', '칼라카타 골드', 'c-milano', 'calacatta', '베이지', '유광', '이탈리아', ['600x1200', '800x800', '1200x1200'], ALL, 68000],
+  ['DEMO-M01', '카라라 화이트', 'c-milano', 'carrara', '화이트', '유광', '이탈리아', ['600x600', '600x1200', '800x800', '1200x1200'], ALLC, 52000],
+  ['DEMO-M02', '칼라카타 골드', 'c-milano', 'calacatta', '베이지', '유광', '이탈리아', ['600x1200', '800x800', '1200x1200'], ALLC, 68000],
   ['DEMO-M03', '그리지오 클라우드', 'c-milano', 'cloud-concrete', '그레이', '무광', '이탈리아', ['600x600', '600x1200', '800x800'], FLOORWALL, 41000],
   ['DEMO-M04', '샌드 트래버틴', 'c-milano', 'travertine-sand', '베이지', '반광', '이탈리아', ['300x600', '600x600', '600x1200'], ALL, 47000],
   ['DEMO-M05', '아이보리 솔리드', 'c-milano', 'ivory-solid', '베이지', '무광', '이탈리아', ['600x600', '800x800'], FLOORWALL, 36000],
@@ -101,14 +104,14 @@ const ROWS: Row[] = [
   ['DEMO-Z03', '빅토리안 패턴', 'c-med', 'victorian', '멀티', '반광', '스페인', ['200x200', '300x300'], ['floor', 'wall'], 62000],
   ['DEMO-Z04', '네이비 헥사', 'c-med', 'hex-navy', '블루·그린', '유광', '스페인', ['100x100', '200x200'], WALLISH, 57000],
   ['DEMO-T01', '베이지 테라조', 'c-terrazzo', 'terrazzo-beige', '멀티', '반광', '이탈리아', ['300x300', '600x600'], ['floor', 'wall'], 44000],
-  ['DEMO-T02', '화이트 테라조', 'c-terrazzo', 'terrazzo-white', '화이트', '반광', '이탈리아', ['300x300', '600x600', '800x800'], ['floor', 'wall'], 46000],
+  ['DEMO-T02', '화이트 테라조', 'c-terrazzo', 'terrazzo-white', '화이트', '반광', '이탈리아', ['300x300', '600x600', '800x800'], ['floor', 'wall', 'countertop'], 46000],
   ['DEMO-T03', '웜 테라조', 'c-terrazzo', 'terrazzo-warm', '멀티', '반광', '이탈리아', ['300x300', '600x600'], ['floor', 'wall'], 49000],
   ['DEMO-T04', '믹스 테라조', 'c-terrazzo', 'terrazzo-mix', '멀티', '반광', '이탈리아', ['300x300', '600x600'], ['floor', 'wall'], 49000],
   ['DEMO-T05', '컬러 테라조', 'c-terrazzo', 'terrazzo-color', '멀티', '반광', '이탈리아', ['300x300', '600x600'], ['floor', 'wall'], 52000],
-  ['DEMO-H01', '블랙 마퀴나', 'c-hotel', 'marquina-black', '블랙', '유광', '이탈리아', ['600x1200', '800x800', '1200x1200'], ALL, 74000],
+  ['DEMO-H01', '블랙 마퀴나', 'c-hotel', 'marquina-black', '블랙', '유광', '이탈리아', ['600x1200', '800x800', '1200x1200'], ALLC, 74000],
   ['DEMO-H02', '네로 앤티크', 'c-hotel', 'nero-concrete', '블랙', '무광', '이탈리아', ['600x600', '600x1200'], FLOORWALL, 45000],
-  ['DEMO-H03', '포레스트 마블', 'c-hotel', 'forest-marble', '블루·그린', '유광', '이탈리아', ['600x1200', '800x800'], ALL, 72000],
-  ['DEMO-H04', '다크 오닉스', 'c-hotel', 'onyx-dark', '브라운', '유광', '이탈리아', ['600x1200', '800x800', '1200x1200'], ALL, 79000],
+  ['DEMO-H03', '포레스트 마블', 'c-hotel', 'forest-marble', '블루·그린', '유광', '이탈리아', ['600x1200', '800x800'], ALLC, 72000],
+  ['DEMO-H04', '다크 오닉스', 'c-hotel', 'onyx-dark', '브라운', '유광', '이탈리아', ['600x1200', '800x800', '1200x1200'], ALLC, 79000],
   ['DEMO-P01', '화이트 스퀘어', 'c-pattern', 'square-white', '화이트', '유광', '한국', ['100x300', '300x600'], WALLISH, 22000],
   ['DEMO-P02', '블랙 스퀘어', 'c-pattern', 'square-black', '블랙', '유광', '한국', ['100x300', '300x600'], WALLISH, 22000],
   ['DEMO-P03', '화이트 헥사곤', 'c-pattern', 'hex-white', '화이트', '반광', '이탈리아', ['100x100', '200x200'], ALL, 48000],
@@ -118,13 +121,13 @@ const ROWS: Row[] = [
   ['DEMO-W02', '라이트 오크', 'c-wood', 'oak-light', '브라운', '텍스처', '이탈리아', ['300x600', '600x1200'], ['floor', 'wall'], 43000],
   ['DEMO-W03', '월넛 브라운', 'c-wood', 'walnut', '브라운', '텍스처', '이탈리아', ['300x600', '600x1200'], ['floor', 'wall'], 46000],
   ['DEMO-W04', '스모크 오크', 'c-wood', 'oak-smoked', '그레이', '텍스처', '이탈리아', ['300x600', '600x1200'], ['floor', 'wall'], 46000],
-  ['DEMO-S01', '아틱 화이트 퀄츠', 'c-stone', 'stone-arctic', '화이트', '유광', '한국', ['600x1200', '1200x1200'], ALL, 120000, 'stone'],
-  ['DEMO-S02', '미드나잇 블랙 퀄츠', 'c-stone', 'stone-midnight', '블랙', '유광', '한국', ['600x1200', '1200x1200'], ALL, 128000, 'stone'],
-  ['DEMO-S03', '슬레이트 블루 퀄츠', 'c-stone', 'stone-slate-blue', '블루·그린', '유광', '한국', ['600x1200', '1200x1200'], WALLISH, 128000, 'stone'],
-  ['DEMO-S04', '샌드 베이지 퀄츠', 'c-stone', 'stone-sand', '베이지', '반광', '한국', ['600x1200', '1200x1200'], ALL, 118000, 'stone'],
-  ['DEMO-S05', '모카 토프 퀄츠', 'c-stone', 'stone-mocha', '브라운', '무광', '한국', ['600x1200', '1200x1200'], ALL, 118000, 'stone'],
-  ['DEMO-S06', '클라우드 그레이 퀄츠', 'c-stone', 'stone-cloud', '그레이', '반광', '한국', ['600x1200', '1200x1200'], ALL, 118000, 'stone'],
-  ['DEMO-S07', '솔트&페퍼 퀄츠', 'c-stone', 'stone-pepper', '그레이', '무광', '한국', ['600x1200', '1200x1200'], WALLISH, 112000, 'stone'],
+  ['DEMO-S01', '아틱 화이트 퀄츠', 'c-stone', 'stone-arctic', '화이트', '유광', '한국', ['600x1200', '1200x1200'], ALLC, 120000, 'stone'],
+  ['DEMO-S02', '미드나잇 블랙 퀄츠', 'c-stone', 'stone-midnight', '블랙', '유광', '한국', ['600x1200', '1200x1200'], ALLC, 128000, 'stone'],
+  ['DEMO-S03', '슬레이트 블루 퀄츠', 'c-stone', 'stone-slate-blue', '블루·그린', '유광', '한국', ['600x1200', '1200x1200'], WALLC, 128000, 'stone'],
+  ['DEMO-S04', '샌드 베이지 퀄츠', 'c-stone', 'stone-sand', '베이지', '반광', '한국', ['600x1200', '1200x1200'], ALLC, 118000, 'stone'],
+  ['DEMO-S05', '모카 토프 퀄츠', 'c-stone', 'stone-mocha', '브라운', '무광', '한국', ['600x1200', '1200x1200'], ALLC, 118000, 'stone'],
+  ['DEMO-S06', '클라우드 그레이 퀄츠', 'c-stone', 'stone-cloud', '그레이', '반광', '한국', ['600x1200', '1200x1200'], ALLC, 118000, 'stone'],
+  ['DEMO-S07', '솔트&페퍼 퀄츠', 'c-stone', 'stone-pepper', '그레이', '무광', '한국', ['600x1200', '1200x1200'], WALLC, 112000, 'stone'],
 ];
 
 export function seedTiles(): Tile[] {
@@ -162,8 +165,13 @@ export type DesignMeta = {
   items: { surface: SurfaceId; tileId: string; name: string; sku: string; sizeId: string }[];
 };
 
+/** 데모 시드 내용이 바뀔 때마다 올린다 — 기존 DB의 DEMO 제품을 새 시드로 교체하는 기준 */
+export const SEED_REV = 2;
+
 export type Db = {
   version: 1;
+  /** 이 DB에 반영된 데모 시드 리비전 */
+  seedRev?: number;
   tiles: Tile[];
   collections: Collection[];
   leads: Lead[];
@@ -174,6 +182,7 @@ export type Db = {
 export function seedDb(): Db {
   return {
     version: 1,
+    seedRev: SEED_REV,
     tiles: seedTiles(),
     collections: structuredClone(SEED_COLLECTIONS),
     leads: [],

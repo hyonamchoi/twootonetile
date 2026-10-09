@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { type Db, SEED_COLLECTIONS, seedDb, seedTiles } from './seed';
+import { type Db, SEED_COLLECTIONS, SEED_REV, seedDb, seedTiles } from './seed';
 
 /**
  * 파일 기반 JSON 저장소 (MVP).
@@ -13,12 +13,12 @@ import { type Db, SEED_COLLECTIONS, seedDb, seedTiles } from './seed';
 // 서버리스(Vercel)는 프로젝트 폴더가 읽기 전용이라 임시 폴더를 쓴다. 이 경우 데이터는 인스턴스가 바뀌면 사라진다.
 export const DATA_DIR =
   process.env.DATA_DIR ||
-  (process.env.VERCEL ? path.join(os.tmpdir(), 'reroom-data') : path.join(process.cwd(), 'data'));
+  (process.env.VERCEL ? path.join(os.tmpdir(), 'twotone-data') : path.join(process.cwd(), 'data'));
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 type Holder = { cache: Db | null; queue: Promise<unknown> };
-const g = globalThis as unknown as { __reroomDb?: Holder };
-const holder: Holder = (g.__reroomDb ??= { cache: null, queue: Promise.resolve() });
+const g = globalThis as unknown as { __twotoneDb?: Holder };
+const holder: Holder = (g.__twotoneDb ??= { cache: null, queue: Promise.resolve() });
 
 async function persist(db: Db) {
   await fs.mkdir(DATA_DIR, { recursive: true });
@@ -28,13 +28,13 @@ async function persist(db: Db) {
 }
 
 /**
- * 예전 데모 시드(절차적 패턴, 이미지 없음)를 실제 텍스처 이미지 시드로 교체한다.
+ * 예전 데모 시드를 최신 시드(SEED_REV)로 교체한다 — 절차적 패턴 시드 → 이미지 시드, 상판 추가 등.
  * 딜러가 직접 올린 타일·리드·설정은 건드리지 않는다.
  */
 function migrateLegacyDemoSeed(db: Db): boolean {
-  const isLegacy = (t: Db['tiles'][number]) => t.sku.startsWith('DEMO-') && t.pattern && !t.imageUrl;
-  if (!db.tiles.some(isLegacy)) return false;
-  db.tiles = [...db.tiles.filter((t) => !isLegacy(t)), ...seedTiles()];
+  if ((db.seedRev ?? 0) >= SEED_REV) return false;
+  db.seedRev = SEED_REV;
+  db.tiles = [...db.tiles.filter((t) => !t.sku.startsWith('DEMO-')), ...seedTiles()];
   for (const c of SEED_COLLECTIONS) {
     const i = db.collections.findIndex((x) => x.id === c.id);
     if (i >= 0) db.collections[i] = structuredClone(c);

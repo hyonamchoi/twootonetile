@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
   const db = await readDb();
   const items = (body.items ?? [])
-    .slice(0, 4)
+    .slice(0, SURFACE_IDS.length)
     .flatMap((it) => {
       const tile = db.tiles.find((t) => t.id === it.tileId);
       const surface = it.surface as SurfaceId;

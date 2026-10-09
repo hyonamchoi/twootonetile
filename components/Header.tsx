@@ -23,7 +23,7 @@ export default function Header() {
             href="/visualizer"
             className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-all duration-200 hover:bg-clay"
           >
-            시뮬레이터 시작
+            AI 시뮬레이터 시작
           </Link>
         </nav>
       </div>

@@ -2,7 +2,7 @@
 
 /* ───────── 적용면 ───────── */
 
-export type SurfaceId = 'floor' | 'wall' | 'backsplash' | 'shower';
+export type SurfaceId = 'floor' | 'wall' | 'backsplash' | 'shower' | 'countertop';
 
 export type Surface = {
   id: SurfaceId;
@@ -29,9 +29,22 @@ export const SURFACES: Surface[] = [
     label: '샤워 공간',
     prompt: 'the shower or bathtub enclosure walls (and the shower floor if visible)',
   },
+  {
+    id: 'countertop',
+    label: '상판',
+    prompt:
+      'the countertop slab surfaces: the kitchen worktop and island top, and the bathroom vanity top (only the horizontal top surface and its front edge; never the cabinet doors, sink bowl, faucet or backsplash)',
+  },
 ];
 
+/** 이음새(줄눈) 없이 한 장으로 마감하는 슬랩 계열 적용면 — 크기·방향·줄눈 옵션을 쓰지 않는다 */
+export const SLAB_SURFACES: SurfaceId[] = ['countertop'];
+export const isSlabSurface = (id: SurfaceId): boolean => SLAB_SURFACES.includes(id);
+
 export const SURFACE_IDS = SURFACES.map((s) => s.id) as SurfaceId[];
+
+/** 한 번의 AI 적용(= API 1회 호출)에 담을 수 있는 적용면·타일 조합 수 — 호출 비용과 결과 품질을 위해 제한 */
+export const MAX_SURFACES_PER_APPLY = 3;
 
 /* ───────── 공간 종류 ───────── */
 

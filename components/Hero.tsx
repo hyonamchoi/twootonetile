@@ -6,9 +6,9 @@ import Reveal from './Reveal';
 import CompareSlider from './CompareSlider';
 
 const STATS = [
-  { value: '4가지', label: '적용면 · 바닥/벽/백스플래시/샤워' },
+  { value: '5가지', label: '적용면 · 바닥/벽/백스플래시/샤워/상판' },
   { value: '2종', label: '소재 · 타일 / 엔지니어드 스톤' },
-  { value: '5회', label: '무료 체험' },
+  { value: '10회', label: '무료 체험' },
 ];
 
 export default function Hero({ tiles }: { tiles: Tile[] }) {
@@ -43,7 +43,7 @@ export default function Hero({ tiles }: { tiles: Tile[] }) {
 
             <p className="mt-7 max-w-xl text-base leading-relaxed text-ink-soft md:text-lg">
               욕실·주방 사진을 올리고 마음에 드는 타일이나 엔지니어드 스톤을 고르세요. 바닥, 벽,
-              백스플래시, 샤워 공간에 크기와 줄눈 색까지 바꿔 가며 미리 확인할 수 있습니다.
+              백스플래시, 샤워 공간, 주방·욕실 상판에 크기와 줄눈 색까지 바꿔 가며 미리 확인할 수 있습니다.
             </p>
 
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4 lg:justify-start">

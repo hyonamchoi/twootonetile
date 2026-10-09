@@ -8,6 +8,7 @@ import {
   LAYOUTS,
   TILE_SIZES,
   formatWon,
+  isSlabSurface,
   type Surface,
   type Tile,
 } from '@/lib/tiles';
@@ -56,6 +57,7 @@ export default function TileControls({
   const [open, setOpen] = useState<PopKey>(null);
   const toggle = (k: Exclude<PopKey, null>) => setOpen((o) => (o === k ? null : k));
   const enabled = Boolean(tile && config);
+  const slab = isSlabSurface(surface.id); // 상판: 이음새 없는 슬랩이라 크기·방향·줄눈 옵션이 없다
 
   const btn = (active = false, disabled = false) =>
     `flex cursor-pointer items-center gap-1.5 rounded-xl border font-semibold transition-colors ${
@@ -175,14 +177,14 @@ export default function TileControls({
                 </p>
                 <p className={`truncate font-bold text-ink ${kiosk ? 'text-lg' : 'text-sm'}`}>{tile.name}</p>
                 <p className="truncate text-[11px] text-ink-soft">
-                  {sizeLabel(config.sizeId)} · 줄눈 {groutName} {config.groutMm}mm
+                  {slab ? '이음새 없는 슬랩 마감' : `${sizeLabel(config.sizeId)} · 줄눈 ${groutName} ${config.groutMm}mm`}
                   {showPrice && tile.price ? ` · ${formatWon(tile.price)}/㎡` : ''}
                 </p>
               </div>
             </>
           ) : (
             <p className="text-sm text-ink-soft">
-              왼쪽 목록에서 <b className="text-ink">{surface.label}</b>에 적용할 타일을 선택하세요.
+              왼쪽 목록에서 <b className="text-ink">{surface.label}</b>에 적용할 {slab ? '스톤·소재를' : '타일을'} 선택하세요.
             </p>
           )}
         </div>
@@ -192,15 +194,19 @@ export default function TileControls({
           <button onClick={onRemove} disabled={!enabled} className={btn(false, !enabled)}>
             제거
           </button>
-          <button onClick={() => toggle('layout')} disabled={!enabled} className={btn(open === 'layout', !enabled)}>
-            방향
-          </button>
-          <button onClick={() => toggle('grout')} disabled={!enabled} className={btn(open === 'grout', !enabled)}>
-            줄눈
-          </button>
-          <button onClick={() => toggle('size')} disabled={!enabled} className={btn(open === 'size', !enabled)}>
-            크기
-          </button>
+          {!slab && (
+            <>
+              <button onClick={() => toggle('layout')} disabled={!enabled} className={btn(open === 'layout', !enabled)}>
+                방향
+              </button>
+              <button onClick={() => toggle('grout')} disabled={!enabled} className={btn(open === 'grout', !enabled)}>
+                줄눈
+              </button>
+              <button onClick={() => toggle('size')} disabled={!enabled} className={btn(open === 'size', !enabled)}>
+                크기
+              </button>
+            </>
+          )}
           <button onClick={onToggleCompare} disabled={!hasVersions} className={btn(compare, !hasVersions)}>
             비교
           </button>
