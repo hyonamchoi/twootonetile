@@ -21,6 +21,7 @@ import {
 import { useLocalStorage } from '@/lib/useLocalStorage';
 import ApiKeyPanel from './ApiKeyPanel';
 import LeadDialog, { type LeadFields } from './LeadDialog';
+import ResultViewer, { type ViewerItem } from './ResultViewer';
 import RoomPicker from './RoomPicker';
 import TileControls from './TileControls';
 import TilePicker from './TilePicker';
@@ -125,6 +126,7 @@ export default function Visualizer({
   const [lead, setLead] = useState<LeadType | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [keyOpen, setKeyOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
   const [toast, setToast] = useState<{ msg: string; link?: string } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -199,6 +201,7 @@ export default function Visualizer({
     setRoomError(null);
     setLead(null);
     setMenuOpen(false);
+    setViewerOpen(false);
     resetResults();
   }, [resetResults]);
 
@@ -214,6 +217,7 @@ export default function Visualizer({
     setGenError(null);
     setActiveId(sp.id);
     setAdding(false);
+    setViewerOpen(false);
   };
 
   const switchSpace = (id: string) => {
@@ -470,14 +474,18 @@ export default function Visualizer({
     }
   };
 
-  const handleDownload = () => {
-    if (!current) return;
+  const downloadVersion = (v: Version) => {
     const a = document.createElement('a');
-    a.href = current.image;
-    a.download = `tile_${roomKind}_${current.label.replace(/\s/g, '')}.png`;
+    a.href = v.image;
+    a.download = `tile_${roomKind}_${v.label.replace(/\s/g, '')}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+  };
+
+  const handleDownload = () => {
+    if (!current) return;
+    downloadVersion(current);
     setMenuOpen(false);
   };
 
@@ -611,15 +619,15 @@ export default function Visualizer({
   const renderVersionDetail = (id: string) => {
     const items = versionItems(id);
     return (
-      <div key={id} className="flex flex-wrap items-center gap-x-4 gap-y-1.5" aria-label={`${labelOf(id)} 적용 내역`}>
-        <span className="text-[11px] font-bold text-ink">{labelOf(id)}</span>
+      <div key={id} className="flex flex-nowrap items-center gap-x-4 gap-y-1.5 overflow-x-auto whitespace-nowrap lg:flex-wrap lg:whitespace-normal" aria-label={`${labelOf(id)} 적용 내역`}>
+        <span className="shrink-0 text-[11px] font-bold text-ink">{labelOf(id)}</span>
         {id === 'original' ? (
           <span className="text-[11px] text-ink-faint">원본 사진 (변경 없음)</span>
         ) : items.length === 0 ? (
           <span className="text-[11px] text-ink-faint">적용 내역이 없습니다</span>
         ) : (
           items.map((i) => (
-            <span key={i.surface.id} className="flex items-center gap-1.5 text-[11px] text-ink-soft">
+            <span key={i.surface.id} className="flex shrink-0 items-center gap-1.5 text-[11px] text-ink-soft">
               <TileThumb tile={i.tile} className="h-5 w-5 shrink-0 rounded border border-line" px={64} />
               <b className="font-semibold text-ink">{i.surface.label}</b>
               {i.tile.name}
@@ -631,19 +639,51 @@ export default function Visualizer({
     );
   };
 
+  const keyFull = byokMode
+    ? byokKey.trim()
+      ? '내 API 키 · 무제한'
+      : 'API 키 입력'
+    : UNLIMITED_TRIAL
+      ? '테스트 모드'
+      : `무료 ${freeCount}/${FREE_GENERATIONS}회`;
+  const keyShort = byokMode ? (byokKey.trim() ? '무제한' : '키 입력') : UNLIMITED_TRIAL ? '테스트' : `${freeCount}/${FREE_GENERATIONS}`;
+
+  const showRoom = Boolean(room) && !adding;
+
+  // 전체 화면 뷰어에 넘길 항목 (원본 + 적용 결과, 각 결과의 적용 내역 포함)
+  const viewerItems: ViewerItem[] = ['original', ...versions.map((v) => v.id)].flatMap((id) => {
+    const src = imageOf(id);
+    if (!src) return [];
+    return [
+      {
+        id,
+        label: labelOf(id),
+        src,
+        details: versionItems(id).map((i) => ({
+          key: i.surface.id,
+          surface: i.surface.label,
+          name: i.tile.name,
+          size: isSlabSurface(i.surface.id) ? undefined : sizeLabel(i.config.sizeId),
+          thumb: tileImageSrc(i.tile, 64),
+        })),
+      },
+    ];
+  });
+
   const ratio = room ? room.w / room.h : 4 / 3;
   const shownA = compare ? imageOf(cmpA) : null;
   const shownB = imageOf(viewId);
 
   return (
     <div className="flex h-dvh flex-col bg-paper text-ink">
-      {/* 상단 바 */}
-      <header className="flex items-center gap-3 border-b border-line bg-paper-raised px-4 py-2.5 md:px-6">
+      {/* 상단 바 — 모바일에서는 주요 작업을 ⋮ 메뉴로 모아 한 줄로 유지 */}
+      <header className="flex items-center gap-2 border-b border-line bg-paper-raised px-3 py-2 md:gap-3 md:px-6 md:py-2.5">
         {kiosk ? (
           <button onClick={resetAll} className={topBtn}>처음으로</button>
         ) : (
-          <Link href="/" className={`${topBtn} flex items-center gap-1`}>
-            <span aria-hidden>←</span> 나가기
+          <Link href="/" aria-label="나가기" className={`${topBtn} flex items-center gap-1`}>
+            <span aria-hidden>←</span>
+            <span className="hidden sm:inline">나가기</span>
           </Link>
         )}
         <h1 className={`shrink-0 font-display font-bold tracking-tight text-ink ${kiosk ? 'text-xl' : 'text-sm md:text-base'}`}>
@@ -659,7 +699,7 @@ export default function Visualizer({
           />
         )}
 
-        <nav className="ml-auto flex items-center gap-2 overflow-x-auto" aria-label="주요 작업">
+        <nav className="ml-auto hidden items-center gap-2 overflow-x-auto lg:flex" aria-label="주요 작업">
           <button onClick={handleShare} className={topBtn}>공유</button>
           <button onClick={() => openLead('appointment')} className={topBtn}>상담 예약</button>
           <button onClick={() => openLead('sample')} className={topBtn}>샘플 주문</button>
@@ -672,20 +712,16 @@ export default function Visualizer({
         </nav>
 
         {!kiosk && (
-          <div className="relative">
+          <div className="relative max-lg:ml-auto">
             <button
               onClick={() => setKeyOpen((o) => !o)}
               aria-expanded={keyOpen}
+              aria-label={`API 키 설정 (${keyFull})`}
               className={`${topBtn} flex items-center gap-1.5 ${byokMode && !byokKey.trim() ? 'border-alert/50 text-alert' : ''}`}
             >
               <span aria-hidden>🔑</span>
-              {byokMode
-                ? byokKey.trim()
-                  ? '내 API 키 · 무제한'
-                  : 'API 키 입력'
-                : UNLIMITED_TRIAL
-                  ? '테스트 모드'
-                  : `무료 ${freeCount}/${FREE_GENERATIONS}회`}
+              <span className="sm:hidden">{keyShort}</span>
+              <span className="hidden sm:inline">{keyFull}</span>
             </button>
             {keyOpen && (
               <>
@@ -704,7 +740,7 @@ export default function Visualizer({
           </div>
         )}
 
-        <div className="relative">
+        <div className={`relative ${kiosk ? 'max-lg:ml-auto' : ''}`}>
           <button
             onClick={() => setMenuOpen((o) => !o)}
             aria-label="메뉴"
@@ -716,7 +752,25 @@ export default function Visualizer({
           {menuOpen && (
             <>
               <button aria-label="메뉴 닫기" className="fixed inset-0 z-30 cursor-default" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full z-40 mt-2 w-72 rounded-2xl border border-line bg-paper-raised p-3 shadow-deep animate-fade-in">
+              <div className="absolute right-0 top-full z-40 mt-2 w-72 max-w-[88vw] rounded-2xl border border-line bg-paper-raised p-3 shadow-deep animate-fade-in">
+                {/* 모바일 전용: 상단 바에서 옮겨 온 주요 작업 */}
+                <div className="mb-2 flex flex-col gap-1 border-b border-line pb-2 text-sm lg:hidden">
+                  <button
+                    onClick={() => { setMenuOpen(false); openLead('quote'); }}
+                    className="cursor-pointer rounded-lg bg-ink px-3 py-2.5 text-left font-bold text-paper hover:bg-clay"
+                  >
+                    견적 요청
+                  </button>
+                  <button onClick={() => { setMenuOpen(false); openLead('appointment'); }} className="cursor-pointer rounded-lg px-3 py-2.5 text-left font-semibold hover:bg-sand">
+                    상담 예약
+                  </button>
+                  <button onClick={() => { setMenuOpen(false); openLead('sample'); }} className="cursor-pointer rounded-lg px-3 py-2.5 text-left font-semibold hover:bg-sand">
+                    샘플 주문
+                  </button>
+                  <button onClick={() => { setMenuOpen(false); void handleShare(); }} className="cursor-pointer rounded-lg px-3 py-2.5 text-left font-semibold hover:bg-sand">
+                    공유 링크 복사
+                  </button>
+                </div>
                 <div className="flex flex-col gap-1 text-sm">
                   {room && (
                     <button
@@ -746,12 +800,16 @@ export default function Visualizer({
         </div>
       </header>
 
-      {/* 본문 */}
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* 중앙 룸뷰 (모바일에서는 위쪽) */}
-        <section className="order-first flex h-[48dvh] min-h-0 shrink-0 flex-col bg-sand/50 lg:order-last lg:h-auto lg:flex-1">
+      {/* 본문 — 모바일: [이미지 → 타일 선택(가장 넓게) → 적용 바(하단 고정)] / 넓은 화면: [선택 | 이미지 + 적용 바] */}
+      <div
+        className={`grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] lg:grid-rows-[minmax(0,1fr)_auto] ${
+          showRoom ? 'grid-rows-[auto_minmax(0,1fr)_auto]' : 'grid-rows-[minmax(0,1fr)]'
+        }`}
+      >
+        {/* 룸뷰 */}
+        <section className="flex min-h-0 flex-col bg-sand/50 lg:col-start-2 lg:row-start-1">
           {spaceTabs}
-          {!room || adding ? (
+          {!showRoom ? (
             <div className="min-h-0 flex-1 overflow-y-auto">
               <RoomPicker
                 kind={pickKind}
@@ -765,170 +823,235 @@ export default function Visualizer({
               />
             </div>
           ) : (
-            <>
-              <div
-                className="flex min-h-0 flex-1 items-center justify-center p-3 md:p-5"
-                style={{ containerType: 'size' }}
-              >
+            room && (
+              <>
                 <div
-                  className="relative overflow-hidden rounded-2xl border border-line bg-paper-raised shadow-deep"
-                  style={{ aspectRatio: `${room.w} / ${room.h}`, width: `min(100cqw, calc(100cqh * ${ratio}))` }}
+                  className="flex h-[26dvh] min-h-[150px] shrink-0 items-center justify-center p-2 md:p-5 lg:h-auto lg:min-h-0 lg:flex-1"
+                  style={{ containerType: 'size' }}
                 >
-                  {compare && shownA && shownB ? (
-                    <CompareSlider
-                      beforeSrc={shownA}
-                      afterSrc={shownB}
-                      beforeAlt={labelOf(cmpA)}
-                      afterAlt={labelOf(viewId)}
-                      beforeLabel={labelOf(cmpA)}
-                      afterLabel={labelOf(viewId)}
-                      aspectRatio={`${room.w} / ${room.h}`}
-                      sizes="(max-width: 1024px) 100vw, 70vw"
-                      className="rounded-none! border-0! shadow-none!"
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={shownB ?? room.src} alt="타일을 적용한 공간" draggable={false} className="h-full w-full object-cover" />
-                  )}
+                  <div
+                    onClick={() => {
+                      if (!compare && !busy) setViewerOpen(true);
+                    }}
+                    className={`relative overflow-hidden rounded-xl border border-line bg-paper-raised shadow-deep lg:rounded-2xl ${compare ? '' : 'cursor-zoom-in'}`}
+                    style={{ aspectRatio: `${room.w} / ${room.h}`, width: `min(100cqw, calc(100cqh * ${ratio}))` }}
+                  >
+                    {compare && shownA && shownB ? (
+                      <CompareSlider
+                        beforeSrc={shownA}
+                        afterSrc={shownB}
+                        beforeAlt={labelOf(cmpA)}
+                        afterAlt={labelOf(viewId)}
+                        beforeLabel={labelOf(cmpA)}
+                        afterLabel={labelOf(viewId)}
+                        aspectRatio={`${room.w} / ${room.h}`}
+                        sizes="(max-width: 1024px) 100vw, 70vw"
+                        className="rounded-none! border-0! shadow-none!"
+                      />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={shownB ?? room.src} alt="타일을 적용한 공간" draggable={false} className="h-full w-full object-cover" />
+                    )}
 
-                  {/* 적용면 칩 */}
-                  <ul className="absolute left-3 top-3 flex max-w-[85%] flex-wrap gap-1.5">
-                    {SURFACES.map((s) => {
-                      const t = configs[s.id] ? tileById.get(configs[s.id]?.tileId ?? '') : undefined;
-                      const on = surface === s.id;
-                      return (
-                        <li key={s.id}>
+                    {/* 크게 보기 */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setViewerOpen(true);
+                      }}
+                      aria-label="결과 이미지 크게 보기"
+                      className="absolute right-2 top-2 z-10 flex cursor-pointer items-center gap-1 rounded-full bg-ink/70 px-3 py-1.5 text-[11px] font-bold text-paper backdrop-blur-sm transition-colors hover:bg-ink"
+                    >
+                      <span aria-hidden>⤢</span> 크게 보기
+                    </button>
+
+                    {/* 적용면 칩 (넓은 화면) */}
+                    <ul className="absolute left-3 top-3 hidden max-w-[70%] flex-wrap gap-1.5 lg:flex">
+                      {SURFACES.map((s) => {
+                        const t = configs[s.id] ? tileById.get(configs[s.id]?.tileId ?? '') : undefined;
+                        const on = surface === s.id;
+                        return (
+                          <li key={s.id}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSurface(s.id);
+                              }}
+                              className={`cursor-pointer rounded-full px-3 py-1.5 text-[11px] font-bold backdrop-blur-sm transition-colors ${
+                                t ? 'bg-ink/80 text-paper' : 'bg-paper-raised/85 text-ink-soft'
+                              } ${on ? 'ring-2 ring-clay' : ''}`}
+                            >
+                              {s.label}
+                              {t ? ` · ${t.name}` : ''}
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+
+                    {/* 모바일: 이미지 위에서 바로 원본/적용 결과 전환 */}
+                    {versions.length > 0 && (
+                      <div className="absolute inset-x-2 bottom-2 z-10 flex gap-1.5 overflow-x-auto lg:hidden" aria-label="적용 결과 전환">
+                        {['original', ...versions.map((v) => v.id)].map((id) => (
                           <button
-                            onClick={() => setSurface(s.id)}
-                            className={`cursor-pointer rounded-full px-3 py-1.5 text-[11px] font-bold backdrop-blur-sm transition-colors ${
-                              t ? 'bg-ink/80 text-paper' : 'bg-paper-raised/85 text-ink-soft'
-                            } ${on ? 'ring-2 ring-clay' : ''}`}
+                            key={id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setViewId(id);
+                            }}
+                            aria-pressed={viewId === id}
+                            className={`shrink-0 cursor-pointer rounded-full px-3 py-1.5 text-[11px] font-bold backdrop-blur-sm ${
+                              viewId === id ? 'bg-paper text-ink' : 'bg-ink/70 text-paper'
+                            }`}
                           >
-                            {s.label}
-                            {t ? ` · ${t.name}` : ''}
+                            {labelOf(id)}
                           </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-
-                  {pending && current && !busy && (
-                    <p className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-ink/80 px-4 py-1.5 text-[11px] font-semibold text-paper backdrop-blur-sm">
-                      변경 사항이 있어요. &lsquo;AI로 적용하기&rsquo;를 눌러 반영하세요
-                    </p>
-                  )}
-
-                  {busy && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-ink/45 backdrop-blur-sm" aria-live="polite">
-                      <div className="flex items-center gap-2">
-                        {[0, 150, 300].map((d) => (
-                          <span key={d} className="h-2.5 w-2.5 animate-bounce rounded-full bg-paper" style={{ animationDelay: `${d}ms` }} />
                         ))}
                       </div>
-                      <p className="text-sm font-semibold text-paper">{LOADING_STATUSES[loadingStep]}</p>
-                      <p className="text-xs text-paper/70">약 10~20초 걸립니다</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+                    )}
 
-              {/* 결과 버전 스트립 */}
-              {versions.length > 0 && (
-                <div className="flex items-center gap-2 overflow-x-auto px-4 pb-2 md:px-6" aria-label="적용 결과 목록">
-                  {['original', ...versions.map((v) => v.id)].map((id) => {
-                    const src = imageOf(id);
-                    return (
-                      <button
-                        key={id}
-                        onClick={() => setViewId(id)}
-                        aria-pressed={viewId === id}
-                        className={`shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 ${viewId === id ? 'border-clay' : 'border-transparent hover:border-line-strong'}`}
-                        title={labelOf(id)}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        {src && <img src={src} alt={labelOf(id)} className="h-12 w-16 object-cover" draggable={false} />}
-                        <span className="block bg-paper-raised px-1 py-0.5 text-[10px] font-semibold text-ink-soft">{labelOf(id)}</span>
-                      </button>
-                    );
-                  })}
-                  {compare && (
-                    <div className="ml-2 flex shrink-0 items-center gap-1.5 text-xs text-ink-soft">
-                      기준
-                      <select
-                        value={cmpA}
-                        onChange={(e) => setCmpA(e.target.value)}
-                        className="rounded-lg border border-line bg-paper px-2 py-1.5 text-xs font-semibold text-ink"
-                        aria-label="비교 기준 이미지"
-                      >
-                        {['original', ...versions.map((v) => v.id)].map((id) => (
-                          <option key={id} value={id}>{labelOf(id)}</option>
-                        ))}
-                      </select>
-                      결과
-                      <select
-                        value={viewId}
-                        onChange={(e) => setViewId(e.target.value)}
-                        className="rounded-lg border border-line bg-paper px-2 py-1.5 text-xs font-semibold text-ink"
-                        aria-label="비교 결과 이미지"
-                      >
-                        {['original', ...versions.map((v) => v.id)].map((id) => (
-                          <option key={id} value={id}>{labelOf(id)}</option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
-              )}
+                    {pending && current && !busy && (
+                      <p className="absolute bottom-12 left-1/2 w-max max-w-[92%] -translate-x-1/2 rounded-full bg-ink/80 px-4 py-1.5 text-center text-[11px] font-semibold text-paper backdrop-blur-sm lg:bottom-3">
+                        변경 사항이 있어요. &lsquo;AI로 적용하기&rsquo;를 눌러 반영하세요
+                      </p>
+                    )}
 
-              {versions.length > 0 && (
-                <div className="mx-4 mb-2 flex flex-col gap-1.5 rounded-xl border border-line bg-paper-raised px-3.5 py-2.5 md:mx-6" aria-live="polite">
-                  {compare && cmpA !== viewId && renderVersionDetail(cmpA)}
-                  {renderVersionDetail(viewId)}
+                    {busy && (
+                      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-ink/45 backdrop-blur-sm" aria-live="polite">
+                        <div className="flex items-center gap-2">
+                          {[0, 150, 300].map((d) => (
+                            <span key={d} className="h-2.5 w-2.5 animate-bounce rounded-full bg-paper" style={{ animationDelay: `${d}ms` }} />
+                          ))}
+                        </div>
+                        <p className="text-sm font-semibold text-paper">{LOADING_STATUSES[loadingStep]}</p>
+                        <p className="text-xs text-paper/70">약 10~20초 걸립니다</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
 
-              {genError && (
-                <div role="alert" className="mx-4 mb-2 flex items-start justify-between gap-3 rounded-xl border border-alert/30 bg-alert-soft p-3 text-xs leading-relaxed text-alert md:mx-6">
-                  <span>{genError}</span>
-                  <button onClick={() => setGenError(null)} aria-label="오류 닫기" className="cursor-pointer text-alert/70 hover:text-alert">✕</button>
-                </div>
-              )}
+                {/* 결과 버전 스트립 (넓은 화면) */}
+                {versions.length > 0 && (
+                  <div className="hidden items-center gap-2 overflow-x-auto px-4 pb-2 md:px-6 lg:flex" aria-label="적용 결과 목록">
+                    {['original', ...versions.map((v) => v.id)].map((id) => {
+                      const src = imageOf(id);
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => setViewId(id)}
+                          aria-pressed={viewId === id}
+                          className={`shrink-0 cursor-pointer overflow-hidden rounded-lg border-2 ${viewId === id ? 'border-clay' : 'border-transparent hover:border-line-strong'}`}
+                          title={labelOf(id)}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          {src && <img src={src} alt={labelOf(id)} className="h-12 w-16 object-cover" draggable={false} />}
+                          <span className="block bg-paper-raised px-1 py-0.5 text-[10px] font-semibold text-ink-soft">{labelOf(id)}</span>
+                        </button>
+                      );
+                    })}
+                    {compare && (
+                      <div className="ml-2 flex shrink-0 items-center gap-1.5 text-xs text-ink-soft">
+                        기준
+                        <select
+                          value={cmpA}
+                          onChange={(e) => setCmpA(e.target.value)}
+                          className="rounded-lg border border-line bg-paper px-2 py-1.5 text-xs font-semibold text-ink"
+                          aria-label="비교 기준 이미지"
+                        >
+                          {['original', ...versions.map((v) => v.id)].map((id) => (
+                            <option key={id} value={id}>{labelOf(id)}</option>
+                          ))}
+                        </select>
+                        결과
+                        <select
+                          value={viewId}
+                          onChange={(e) => setViewId(e.target.value)}
+                          className="rounded-lg border border-line bg-paper px-2 py-1.5 text-xs font-semibold text-ink"
+                          aria-label="비교 결과 이미지"
+                        >
+                          {['original', ...versions.map((v) => v.id)].map((id) => (
+                            <option key={id} value={id}>{labelOf(id)}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-              <TileControls
-                surface={surfaceDef}
-                tile={activeTile}
-                config={activeConfig}
-                showPrice={showPrice}
-                kiosk={kiosk}
-                busy={busy}
-                canApply={canApply}
-                pending={pending}
-                hasVersions={versions.length > 0}
-                compare={compare}
-                onChange={patchConfig}
-                onRemove={removeConfig}
-                onToggleCompare={toggleCompare}
-                onApply={handleApply}
-              />
-            </>
+                {/* 선택한 결과의 적용 내역 */}
+                {versions.length > 0 && (
+                  <div className="mx-3 mb-1.5 mt-1.5 flex flex-col gap-1.5 rounded-xl border border-line bg-paper-raised px-3 py-2 lg:mx-6 lg:mb-2 lg:mt-0 lg:px-3.5 lg:py-2.5" aria-live="polite">
+                    {compare && cmpA !== viewId && <div className="hidden lg:block">{renderVersionDetail(cmpA)}</div>}
+                    {renderVersionDetail(viewId)}
+                  </div>
+                )}
+
+                {genError && (
+                  <div role="alert" className="mx-3 mb-1.5 flex items-start justify-between gap-3 rounded-xl border border-alert/30 bg-alert-soft p-3 text-xs leading-relaxed text-alert lg:mx-6 lg:mb-2">
+                    <span>{genError}</span>
+                    <button onClick={() => setGenError(null)} aria-label="오류 닫기" className="cursor-pointer text-alert/70 hover:text-alert">✕</button>
+                  </div>
+                )}
+              </>
+            )
           )}
         </section>
 
-        {/* 타일 선택 패널 (모바일에서는 아래쪽) */}
-        <TilePicker
-          tiles={tiles}
-          collections={data?.collections ?? []}
-          showPrice={showPrice}
-          kiosk={kiosk}
-          surface={surface}
-          onSurface={setSurface}
-          chosen={chosen}
-          onSelect={handleSelect}
-          favorites={favorites}
-          onToggleFav={toggleFav}
-          initialCollectionId={initialCollection}
-        />
+        {/* 타일 선택 패널 — 모바일에서 남는 공간을 가장 넓게 쓴다 */}
+        <div
+          className={`${showRoom ? 'flex' : 'hidden lg:flex'} min-h-0 flex-col border-t border-line lg:col-start-1 lg:row-span-2 lg:row-start-1 lg:border-t-0`}
+        >
+          <TilePicker
+            tiles={tiles}
+            collections={data?.collections ?? []}
+            showPrice={showPrice}
+            kiosk={kiosk}
+            surface={surface}
+            onSurface={setSurface}
+            chosen={chosen}
+            onSelect={handleSelect}
+            favorites={favorites}
+            onToggleFav={toggleFav}
+            initialCollectionId={initialCollection}
+          />
+        </div>
+
+        {/* 적용 바 — 모바일에서는 화면 아래에 고정 */}
+        {showRoom && (
+          <div className="lg:col-start-2 lg:row-start-2">
+            <TileControls
+              surface={surfaceDef}
+              tile={activeTile}
+              config={activeConfig}
+              showPrice={showPrice}
+              kiosk={kiosk}
+              busy={busy}
+              canApply={canApply}
+              pending={pending}
+              hasVersions={versions.length > 0}
+              compare={compare}
+              onChange={patchConfig}
+              onRemove={removeConfig}
+              onToggleCompare={toggleCompare}
+              onApply={handleApply}
+            />
+          </div>
+        )}
       </div>
+
+      {viewerOpen && room && (
+        <ResultViewer
+          items={viewerItems}
+          activeId={viewId}
+          onActive={setViewId}
+          onClose={() => setViewerOpen(false)}
+          onDownload={(id) => {
+            const v = versions.find((x) => x.id === id);
+            if (v) downloadVersion(v);
+          }}
+          ratio={ratio}
+        />
+      )}
 
       {/* 방 종류 표시(접근성용) */}
       <p className="sr-only">현재 공간: {ROOM_KINDS.find((r) => r.id === roomKind)?.label}</p>

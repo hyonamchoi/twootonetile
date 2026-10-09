@@ -70,6 +70,7 @@ export default function TilePicker({
   const [finishes, setFinishes] = useState<Finish[]>([]);
   const [onlyFav, setOnlyFav] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [showSearch, setShowSearch] = useState(false); // 모바일: 검색·필터 줄은 기본으로 접어 둔다
   const [view, setView] = useState<'grid' | 'list'>('grid');
 
   const selectedCount = Object.keys(chosen).length;
@@ -107,11 +108,18 @@ export default function TilePicker({
       on ? 'border-ink bg-ink text-paper' : 'border-line bg-paper text-ink-soft hover:border-line-strong hover:text-ink'
     }`;
 
+  const materialChips = [{ id: 'all' as const, label: '전체' }, ...MATERIALS].map((m) => (
+    <button key={m.id} onClick={() => setMaterial(m.id)} className={`${chip(material === m.id)} shrink-0`}>
+      {m.label}
+    </button>
+  ));
+
   return (
-    <aside className="flex min-h-0 flex-1 flex-col border-line bg-paper-raised lg:w-[340px] lg:flex-none lg:border-r">
-      <div className="border-b border-line px-5 pb-4 pt-5">
+    <aside className="flex min-h-0 flex-1 flex-col overflow-y-auto border-line bg-paper-raised lg:overflow-visible lg:border-r">
+      {/* 모바일: 적용면 탭은 위에 고정하고, 아래 필터·목록이 함께 스크롤되어 목록 공간을 최대한 확보한다 */}
+      <div className="sticky top-0 z-10 border-b border-line bg-paper-raised px-4 py-2.5 lg:static lg:border-b-0 lg:px-5 lg:pb-0 lg:pt-5">
         {/* 적용면 선택 — 6열 격자에서 윗줄 3개·아랫줄 2개로 나눠 5개 버튼이 균형 있게 배치되도록 한다 */}
-        <div className="grid grid-cols-6 gap-2" role="tablist" aria-label="적용면">
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:grid lg:grid-cols-6 lg:overflow-visible lg:px-0" role="tablist" aria-label="적용면">
           {SURFACES.map((s, i) => {
             const on = surface === s.id;
             const done = Boolean(chosen[s.id]);
@@ -121,9 +129,9 @@ export default function TilePicker({
                 role="tab"
                 aria-selected={on}
                 onClick={() => onSurface(s.id)}
-                className={`flex cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-1 font-semibold transition-colors ${
-                  i < 3 ? 'col-span-2' : 'col-span-3'
-                } ${kiosk ? 'py-3.5 text-[15px]' : 'py-2.5 text-[13px]'} ${on ? 'border-ink bg-ink text-paper shadow-lift' : 'border-line bg-paper text-ink-soft hover:border-line-strong hover:text-ink'}`}
+                className={`flex shrink-0 cursor-pointer items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border px-3.5 font-semibold transition-colors lg:px-1 ${
+                  i < 3 ? 'lg:col-span-2' : 'lg:col-span-3'
+                } ${kiosk ? 'py-3.5 text-[15px]' : 'py-2 text-[13px] lg:py-2.5'} ${on ? 'border-ink bg-ink text-paper shadow-lift' : 'border-line bg-paper text-ink-soft hover:border-line-strong hover:text-ink'}`}
               >
                 {done && <span aria-hidden className={`h-1.5 w-1.5 rounded-full ${on ? 'bg-paper' : 'bg-clay'}`} />}
                 {s.label}
@@ -131,8 +139,10 @@ export default function TilePicker({
             );
           })}
         </div>
+      </div>
 
-        <p className="mt-2 text-[11px] text-ink-faint" aria-live="polite">
+      <div className="border-b border-line px-4 pb-2.5 pt-2 lg:px-5 lg:pb-4 lg:pt-3">
+        <p className="hidden text-[11px] text-ink-faint lg:block" aria-live="polite">
           한 번에 최대 {MAX_SURFACES_PER_APPLY}곳까지 적용 ·{' '}
           <b className={selectedCount >= MAX_SURFACES_PER_APPLY ? 'text-ink' : 'text-ink-soft'}>
             선택 {selectedCount}/{MAX_SURFACES_PER_APPLY}
@@ -140,16 +150,10 @@ export default function TilePicker({
         </p>
 
         {/* 소재: 타일 / 엔지니어드 스톤 */}
-        <div className="mt-3 flex gap-1.5" role="group" aria-label="소재">
-          {[{ id: 'all' as const, label: '전체' }, ...MATERIALS].map((m) => (
-            <button key={m.id} onClick={() => setMaterial(m.id)} className={chip(material === m.id)}>
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <div className="mt-3 hidden gap-1.5 lg:flex" role="group" aria-label="소재">{materialChips}</div>
 
         {/* 검색 · 필터 · 즐겨찾기 · 보기 방식 */}
-        <div className="mt-3 flex items-center gap-2">
+        <div className={`mt-2 items-center gap-2 lg:mt-3 lg:flex ${showSearch ? 'flex' : 'hidden'}`}>
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -237,7 +241,24 @@ export default function TilePicker({
 
         {/* 컬렉션(트렌드) 바로가기 */}
         {collections.length > 0 && (
-          <div className="-mx-5 mt-3 flex gap-1.5 overflow-x-auto px-5 pb-1" role="group" aria-label="컬렉션">
+          <div className="-mx-4 mt-2 flex items-center gap-1.5 overflow-x-auto px-4 pb-1 lg:-mx-5 lg:mt-3 lg:px-5" role="group" aria-label="컬렉션">
+            {/* 모바일: 소재 칩을 같은 줄 맨 앞에 두어 세로 공간을 아낀다 */}
+            <div className="flex shrink-0 items-center gap-1.5 lg:hidden" role="group" aria-label="소재">
+              <button
+                onClick={() => setShowSearch((v) => !v)}
+                aria-expanded={showSearch}
+                aria-label="검색·필터 열기"
+                className={`${chip(showSearch || Boolean(query) || activeFilters > 0)} relative flex shrink-0 items-center gap-1`}
+              >
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="2.2" />
+                  <path d="M16 16l4.5 4.5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+                </svg>
+                검색
+              </button>
+              {materialChips}
+              <span aria-hidden className="mx-0.5 h-4 w-px bg-line-strong" />
+            </div>
             <button onClick={() => setCollectionId('all')} className={`${chip(collectionId === 'all')} shrink-0`}>
               전체
             </button>
@@ -256,7 +277,7 @@ export default function TilePicker({
       </div>
 
       {/* 타일 목록 */}
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div className="p-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-4">
         {locked && (
           <p role="status" className="mb-3 rounded-xl border border-line-strong bg-sand p-3 text-xs leading-relaxed text-ink-soft">
             이미 {MAX_SURFACES_PER_APPLY}곳을 선택했어요. 다른 면의 &lsquo;제거&rsquo;를 누르면 이 면을 고를 수 있습니다.

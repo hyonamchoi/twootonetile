@@ -118,3 +118,13 @@ body::after {
   background: var(--color-ink);
   color: var(--color-paper);
 }
+
+/* 모바일·태블릿에서는 가로 스크롤 칩 줄의 스크롤바를 숨긴다(스와이프로 이동) */
+@media (max-width: 1023px) {
+  .overflow-x-auto {
+    scrollbar-width: none;
+  }
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+}
